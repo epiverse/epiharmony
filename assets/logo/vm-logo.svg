@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 462 462" class="text-gray-400 group-hover:text-gray-500">
+  <path fill="currentColor" fill-rule="evenodd" d="
+    M231 21c-115.98 0-210 94.02-210 210s94.02 210 210 210 210-94.02 210-210S346.98 21 231 21zm0 30c-99.4 0-180 80.6-180 180s80.6 180 180 180 180-80.6 180-180S330.4 51 231 51zm-95 110h154v-20l36 40-36 40v-20H136v-40zm0 100h154v-20l36 40-36 40v-20H136v-40z
+  " stroke="currentColor" stroke-width="20"/>
+</svg>
