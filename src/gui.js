@@ -295,82 +295,97 @@ function ui(divID) {
   `;
 
   divUI.innerHTML = `
-    <!-- Header -->
-    <div id="header" class="w-full px-6 sm:px-10 bg-orange-900 rounded-b-lg border-3 border-orange-950">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center justify-start">
-          <div class="flex items-center">
-            <img src="${epiHarmonyLogo}" class="h-10 w-10 sm:h-20 sm:w-20 logo vanilla" alt="epiHarmony logo" />
-          </div>
-          <div class="min-w-0 px-4 sm:px-6">
-            <h2 class="text-2xl font-bold leading-7 text-white sm:text-5xl sm:tracking-tight" 
-                style="font-family: 'Dancing Script', cursive;">
-              epiHarmony
-            </h2>
-          </div>
-        </div>
-        <div class="flex md:mt-0 md:ml-4 shrink-0">
-          <a title="Source code" target="_blank" href="${sourceCodeUrl}">
-            <img src="${githubLogo}" class="h-8 w-8 sm:h-14 sm:w-14 fill-current" alt="github logo" />
-          </a>
-        </div>
+<!-- Header -->
+<div id="header" class="w-full px-6 sm:px-10 bg-orange-900 rounded-b-lg border-3 border-orange-950">
+  <div class="flex items-center justify-between">
+    <div class="flex items-center justify-start">
+      <div class="flex items-center">
+        <img src="${epiHarmonyLogo}" class="h-10 w-10 sm:h-20 sm:w-20 logo vanilla" alt="epiHarmony logo" />
+      </div>
+      <div class="min-w-0 px-4 sm:px-6">
+        <h2 class="text-2xl font-bold leading-7 text-white sm:text-5xl sm:tracking-tight" 
+            style="font-family: 'Dancing Script', cursive;">
+          epiHarmony
+        </h2>
       </div>
     </div>
-
-    <!-- Navigation -->
-    <div>
-      <!-- Mobile dropdown -->
-      <div class="grid grid-cols-1 sm:hidden">
-        <select id="nav-select"
-                aria-label="Select a tab" 
-                class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-2 pr-8 pl-3 text-base text-gray-900 
-                       outline-1 -outline-offset-1 outline-gray-300 
-                       focus:outline-2 focus:-outline-offset-2 focus:outline-amber-600">
-          <option data-tabname="Vocabulary Mapper" selected>Vocabulary Mapper</option>
-          <option data-tabname="Data Transform">Data Transform</option>
-          <option data-tabname="Quality Control">Quality Control</option>
-        </select>
-        <svg class="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end fill-gray-500" 
-             viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
-          <path fill-rule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-        </svg>
-      </div>
-
-      <!-- Desktop tabs -->
-      <div class="hidden sm:block">
-        <div class="border-b border-gray-200">
-          <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-            <!-- Vocabulary Mapper -->
-            <a href="#"
-               class="tab-link group inline-flex items-center border-b-2 border-amber-500 px-4 py-4 text-lg font-medium text-amber-700""
-               data-tabname="Vocabulary Mapper"
-               aria-current="page">
-              ${vocabularyMapperLogo.replace('text-gray-500 group-hover:text-gray-600', 'text-amber-600')}
-              <span class="pl-2">Vocabulary Mapper</span>
-            </a>
-
-            <!-- Data Transform -->
-            <a href="#"
-               class="tab-link group inline-flex items-center border-b-2 border-transparent px-4 py-4 text-lg font-medium text-gray-500 hover:border-gray-300 hover:text-gray-600"
-               data-tabname="Data Transform">
-              ${dataTransformLogo}
-              <span class="pl-2">Data Transform</span>
-            </a>
-
-            <!-- Quality Control -->
-            <a href="#"
-               class="tab-link group inline-flex items-center border-b-2 border-transparent px-4 py-4 text-lg font-medium text-gray-500 hover:border-gray-300 hover:text-gray-600"
-               data-tabname="Quality Control">
-              ${qualityControlLogo}
-              <span class="pl-2">Quality Control</span>
-            </a>
-          </nav>
-        </div>
-      </div>
+    <div class="flex md:mt-0 md:ml-4 shrink-0">
+      <a title="Source code" target="_blank" href="${sourceCodeUrl}">
+        <img src="${githubLogo}" class="h-8 w-8 sm:h-14 sm:w-14 fill-current" alt="github logo" />
+      </a>
     </div>
+  </div>
+</div>
 
-    <!-- Content area for tab display -->
-    <div id="content" class="p-6 text-gray-800 text-lg"></div>
+<!-- Navigation tabs -->
+<div>
+  <!-- Dropdown (mobile users) -->
+  <div class="grid grid-cols-1 sm:hidden">
+    <select id="nav-select"
+            aria-label="Select a tab" 
+            class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-2 pr-8 pl-3 text-base text-gray-900 
+                   outline-1 -outline-offset-1 outline-gray-300 
+                   focus:outline-2 focus:-outline-offset-2 focus:outline-amber-600">
+      <option data-tabname="Vocabulary Mapper" selected>Vocabulary Mapper</option>
+      <option data-tabname="Data Transform">Data Transform</option>
+      <option data-tabname="Quality Control">Quality Control</option>
+    </select>
+    <svg class="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end fill-gray-500" 
+         viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
+      <path fill-rule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+    </svg>
+  </div>
+
+  <!-- Tabs (desktop users) -->
+  <div class="hidden sm:block">
+    <div class="border-b border-gray-200">
+      <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+        <!-- Vocabulary Mapper -->
+        <a href="#"
+           class="tab-link group inline-flex items-center border-b-3 border-amber-500 px-4 py-3 text-lg font-medium text-amber-600"
+           data-tabname="Vocabulary Mapper"
+           aria-current="page">
+          ${vocabularyMapperLogo.replace('text-gray-500 group-hover:text-gray-600', 'text-amber-600')}
+          <span class="pl-2">Vocabulary Mapper</span>
+        </a>
+
+        <!-- Data Transform -->
+        <a href="#"
+           class="tab-link group inline-flex items-center border-b-3 border-transparent px-4 py-3 text-lg font-medium text-gray-500 hover:border-gray-300 hover:text-gray-600"
+           data-tabname="Data Transform">
+          ${dataTransformLogo}
+          <span class="pl-2">Data Transform</span>
+        </a>
+
+        <!-- Quality Control -->
+        <a href="#"
+           class="tab-link group inline-flex items-center border-b-3 border-transparent px-4 py-3 text-lg font-medium text-gray-500 hover:border-gray-300 hover:text-gray-600"
+           data-tabname="Quality Control">
+          ${qualityControlLogo}
+          <span class="pl-2">Quality Control</span>
+        </a>
+      </nav>
+    </div>
+  </div>
+</div>
+
+<!-- Main stage -->
+<div id="main" class="p-6 text-gray-800 text-lg">
+  <!-- Vocabulary Mapper app -->
+  <div id="vocabulary-mapper-app" class="tab-content">
+    <p>Vocabulary Mapper app here.</p>
+  </div>
+  
+  <!-- Data Transform app -->
+  <div id="data-transform-app" class="tab-content hidden">
+    <p>Data Transform app here.</p>
+  </div>
+  
+  <!-- Quality Control app -->
+  <div id="quality-control-app" class="tab-content hidden">
+    <p>Quality Control app here.</p>
+  </div>
+</div>
   `;
 
   return divUI;
