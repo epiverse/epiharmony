@@ -11,6 +11,8 @@ import {
   getDataRecord
 } from './src/db.js';
 
+import { initQualityControlApp } from './src/qualityControl.js';
+
 import { OpenAI } from 'openai';
 import { Ajv } from 'ajv';
 
@@ -21,6 +23,7 @@ function init() {
   ui('app');
   setupConfigSection();
   setupNavigation();
+  initQualityControlApp();
 }
 
 /*--------------------------------------
