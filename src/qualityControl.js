@@ -443,8 +443,21 @@ function buildHandsontable(containerEl, data, schema) {
             // Handle enums for dropdown
             if (colSchema.enum && colSchema.enum.length > 0) {
                 colType = 'dropdown';
-                // Filter out null values from enum list for dropdown
-                colOptions.source = colSchema.enum.filter(item => item !== null);
+                // Add a special "NULL" option at the end if null is allowed
+                if (allowsNullValues(colSchema)) {
+                    const enumValues = colSchema.enum.filter(item => item !== null);
+                    colOptions.source = [...enumValues, 'NULL'];
+
+                    // Add a hook to transform 'NULL' text value to actual null
+                    colOptions.renderer = function(instance, td, row, col, prop, value, cellProperties) {
+                        Handsontable.renderers.DropdownRenderer.apply(this, arguments);
+                        if (value === null) {
+                            td.innerHTML = '<em class="text-gray-400">NULL</em>';
+                        }
+                    };
+                } else {
+                    colOptions.source = colSchema.enum.filter(item => item !== null);
+                }
             }
         }
 
@@ -468,7 +481,7 @@ function buildHandsontable(containerEl, data, schema) {
         contextMenu: true,
         className: 'htLeft htMiddle text-base',
         licenseKey: 'non-commercial-and-evaluation',
-        // Handle empty string to null conversion
+        // Handle empty string to null conversion and special dropdown values
         beforeChange: function(changes, source) {
             if (!changes) return;
 
@@ -484,6 +497,11 @@ function buildHandsontable(containerEl, data, schema) {
 
                 // If it's a numeric column and the value is an empty string, set it to null
                 if (colMeta.type === 'numeric' && newValue === '') {
+                    change[3] = null;
+                }
+
+                // Handle 'NULL' selection in dropdowns
+                if (colMeta.type === 'dropdown' && newValue === 'NULL') {
                     change[3] = null;
                 }
             });
