@@ -704,12 +704,12 @@
       "type": ["number", "null"],
       "description": "Alcohol intake (grams/day). Null if missing.",
       "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0
-                  },
-                  {"type": "null"}
-                ]
+        {
+          "type": "number",
+          "minimum": 0
+        },
+        {"type": "null"}
+      ]
     },
 
     "SMOKE": {
