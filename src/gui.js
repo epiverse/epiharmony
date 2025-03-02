@@ -361,18 +361,18 @@ function ui(divID) {
     <!-- LLM API Configuration -->
     <div>
       <h4 class="text-md font-semibold text-gray-800 mb-1">LLM API Configuration</h4>
-      <p class="text-sm text-gray-600 mb-2">[Placeholder description for LLM base URL and API key]</p>
+      <p class="mt-1 text-sm leading-6 text-gray-600">Provide the base URL of your LLM API endpoint and the associated API key. The endpoint must be compatible with OpenAI's API structure, requiring the <a target="_blank" class="underline text-amber-700 text-sm font-mono" href="https://platform.openai.com/docs/api-reference/models">models</a> and <a target="_blank" class="underline text-amber-700 text-sm font-mono" href="https://platform.openai.com/docs/api-reference/chat/create">chat/completions</a> endpoints. For example, to use the OpenAI API, set the base URL to <span class="font-mono px-1 rounded">https://api.openai.com/v1</span> and the API key can be generated at <a target="_blank" class="underline text-amber-700 text-sm" href="https://platform.openai.com/api-keys">OpenAI API keys</a>. Optionally, an LLM can be self-hosted via an OpenAI-compatible API using tools like <a target="_blank" class="underline text-amber-700 text-sm" href="https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html">vLLM</a>.</p>
 
       <div class="flex flex-col sm:flex-row gap-4">
         <div class="flex-1">
-          <label for="llm-base-url" class="text-sm text-gray-700 mb-1 block">Base URL:</label>
+          <label for="llm-base-url" class="text-sm font-medium text-gray-700 mb-1 block">Base URL:</label>
           <input id="llm-base-url" type="text" value="https://api.openai.com/v1"
                  class="w-full border border-gray-300 rounded px-2 py-1 text-gray-900
                         focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent 
                         cursor-text" />
         </div>
         <div class="flex-1">
-          <label for="llm-api-key" class="text-sm text-gray-700 mb-1 block">API key:</label>
+          <label for="llm-api-key" class="text-sm font-medium text-gray-700 mb-1 block">API key:</label>
           <input id="llm-api-key" type="password"
                  class="w-full border border-gray-300 rounded px-2 py-1 text-gray-900
                         focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent 
@@ -398,11 +398,11 @@ function ui(divID) {
     <!-- Model selection -->
     <div>
       <h4 class="text-md font-semibold text-gray-800 mb-1">Model Selection</h4>
-      <p class="text-sm text-gray-600 mb-2">[Placeholder description for embedding & chat models]</p>
+      <p class="mt-1 text-sm leading-6 text-gray-600">Select a model from the list below that is available at your chosen API endpoint.</p>
 
       <div class="flex flex-col sm:flex-row gap-4">
         <div class="flex-1">
-          <label for="embedding-model-select" class="text-sm text-gray-700 mb-1 block">Embedding model:</label>
+          <label for="embedding-model-select" class="text-sm font-medium text-gray-700 mb-1 block">Embedding model:</label>
           <select id="embedding-model-select"
                   class="w-full border border-gray-300 rounded px-2 py-1 text-gray-900 
                          focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent 
@@ -411,7 +411,7 @@ function ui(divID) {
           </select>
         </div>
         <div class="flex-1">
-          <label for="chat-model-select" class="text-sm text-gray-700 mb-1 block">Chat model:</label>
+          <label for="chat-model-select" class="text-sm font-medium text-gray-700 mb-1 block">Chat model:</label>
           <select id="chat-model-select"
                   class="w-full border border-gray-300 rounded px-2 py-1 text-gray-900
                          focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent
@@ -431,7 +431,7 @@ function ui(divID) {
 
       <div class="flex flex-col sm:flex-row gap-4">
         <div class="flex-1">
-          <label for="source-schema-url" class="text-sm text-gray-700 mb-1 block">Source schema (JSON Schema):</label>
+          <label for="source-schema-url" class="text-sm font-medium text-gray-700 mb-1 block">Source schema (JSON Schema):</label>
           <input id="source-schema-url" type="text"
                  class="w-full border border-gray-300 rounded px-2 py-1 text-gray-900
                         focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent
@@ -439,7 +439,7 @@ function ui(divID) {
                  placeholder="https://example.com/source-schema.json"/>
         </div>
         <div class="flex-1">
-          <label for="target-schema-url" class="text-sm text-gray-700 mb-1 block">Target schema (JSON Schema):</label>
+          <label for="target-schema-url" class="text-sm font-medium text-gray-700 mb-1 block">Target schema (JSON Schema):</label>
           <input id="target-schema-url" type="text"
                  class="w-full border border-gray-300 rounded px-2 py-1 text-gray-900
                         focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent
@@ -457,7 +457,7 @@ function ui(divID) {
     <div>
       <h4 class="text-md font-semibold text-gray-800 mb-1">Upload Data</h4>
       <p class="text-sm text-gray-600 mb-2">[Placeholder description for Target dataset]</p>
-
+      <label for="target-schema-url" class="text-sm font-medium text-gray-700 mb-1 block">Target data (JSON):</label>
       <input id="target-dataset" type="file" accept=".json"
              class="cursor-pointer text-sm text-gray-900 file:mr-4 file:py-2 file:px-4
                     file:rounded file:border-0 file:text-sm file:font-semibold

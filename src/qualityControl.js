@@ -125,18 +125,12 @@ function createQualityControlUI(data, schema) {
     );
     wrapper.appendChild(tableContainer);
 
-    // Build the Handsontable
+    // Build Handsontable instance
     const hot = buildHandsontable(tableContainer, data, schema);
 
-    // Create action buttons (Validate, Download JSON)
+    // Action buttons container
     const buttonsContainer = document.createElement('div');
-    buttonsContainer.classList.add(
-        'flex',
-        'gap-3',
-        'items-center',
-        'justify-start',
-        'my-4'
-    );
+    buttonsContainer.classList.add('flex', 'gap-3', 'items-center', 'justify-start', 'my-4');
     wrapper.appendChild(buttonsContainer);
 
     // Validate button
@@ -158,7 +152,7 @@ function createQualityControlUI(data, schema) {
 
     // Download JSON button
     const downloadBtn = document.createElement('button');
-    downloadBtn.textContent = 'Download JSON';
+    downloadBtn.textContent = 'Download data';
     downloadBtn.classList.add(
         'bg-white',
         'text-gray-700',
@@ -189,9 +183,14 @@ function createQualityControlUI(data, schema) {
     );
     wrapper.appendChild(errorContainer);
 
-    // Copy errors button
+    // Container for displaying the error messages
+    const errorLogDiv = document.createElement('div');
+    errorLogDiv.classList.add('mt-8', 'whitespace-pre-wrap');
+    errorContainer.appendChild(errorLogDiv);
+
+    // Copy Errors button
     const copyBtn = document.createElement('button');
-    copyBtn.textContent = 'Copy Errors';
+    copyBtn.innerHTML = '<span class="button-text">Copy Errors</span>';
     copyBtn.classList.add(
         'absolute',
         'top-2',
@@ -206,25 +205,37 @@ function createQualityControlUI(data, schema) {
         'px-2',
         'py-1',
         'text-xs',
+        'flex',
+        'items-center',
+        'gap-1',
         'cursor-pointer'
     );
-    copyBtn.addEventListener('click', () => {
-        navigator.clipboard
-            .writeText(errorLogDiv.innerText)
-            .catch((err) => console.error('Failed to copy errors: ', err));
+    const buttonTextEl = copyBtn.querySelector('.button-text');
+    const originalClasses = copyBtn.className;
+    copyBtn.addEventListener('click', async () => {
+        if (!buttonTextEl) return;
+        try {
+            await navigator.clipboard.writeText(errorLogDiv.innerText);
+            copyBtn.className = 'absolute top-2 right-2 bg-white text-green-600 border border-green-400 rounded px-2 py-1 text-xs flex items-center gap-1 cursor-pointer';
+            buttonTextEl.textContent = '✓';
+            setTimeout(() => {
+                copyBtn.className = originalClasses;
+                buttonTextEl.textContent = 'Copy Errors';
+            }, 1000);
+        } catch (err) {
+            copyBtn.className = 'absolute top-2 right-2 bg-white text-red-600 border border-red-400 rounded px-2 py-1 text-xs flex items-center gap-1 cursor-pointer';
+            buttonTextEl.textContent = '!';
+            setTimeout(() => {
+                copyBtn.className = originalClasses;
+                buttonTextEl.textContent = 'Copy Errors';
+            }, 1000);
+        }
     });
     errorContainer.appendChild(copyBtn);
 
-    // Schema error container
-    const errorLogDiv = document.createElement('div');
-    errorLogDiv.classList.add(
-        'mt-8',
-        'whitespace-pre-wrap'
-    );
-    errorContainer.appendChild(errorLogDiv);
-
     return wrapper;
 }
+
 
 /**
  * Build a Handsontable instance with slightly larger text.

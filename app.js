@@ -532,18 +532,28 @@ function showError(containerEl, errorText) {
 
     // Handle copy
     const copyBtn = containerEl.querySelector('.copy-error-button');
-    if (copyBtn) {
-        copyBtn.addEventListener('click', async () => {
-            try {
-                await navigator.clipboard.writeText(errorText);
-                copyBtn.textContent = '✓';
-                setTimeout(() => copyBtn.textContent = 'Copy', 1000);
-            } catch (err) {
-                copyBtn.textContent = '!';
-                setTimeout(() => copyBtn.textContent = 'Copy', 1000);
-            }
-        });
-    }
+    copyBtn.innerHTML = '<span class="button-text">Copy</span>';
+    const buttonTextEl = copyBtn.querySelector('.button-text');
+    const originalClasses = copyBtn.className;
+    copyBtn.addEventListener('click', async () => {
+        if (!buttonTextEl) return;
+        try {
+            await navigator.clipboard.writeText(errorText);
+            copyBtn.className = 'copy-error-button absolute top-2 right-2 bg-white text-green-600 border border-green-400 rounded px-2 py-1 text-xs flex items-center gap-1 cursor-pointer';
+            buttonTextEl.textContent = '✓';
+            setTimeout(() => {
+                copyBtn.className = originalClasses;
+                buttonTextEl.textContent = 'Copy';
+            }, 1000);
+        } catch (err) {
+            copyBtn.className = 'copy-error-button absolute top-2 right-2 bg-white text-red-600 border border-red-400 rounded px-2 py-1 text-xs flex items-center gap-1 cursor-pointer';
+            buttonTextEl.textContent = '!';
+            setTimeout(() => {
+                copyBtn.className = originalClasses;
+                buttonTextEl.textContent = 'Copy';
+            }, 1000);
+        }
+    });
 }
 
 function showSuccess(containerEl, msg) {
