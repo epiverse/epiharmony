@@ -372,7 +372,7 @@
       ]
     },
 
-    "EDUCTION": {
+    "EDUCATION": {
       "description": "Highest level of education",
       "type": ["integer", "null"],
       "enum": [1, 2, 3, 4, 5, 9, null],

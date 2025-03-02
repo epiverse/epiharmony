@@ -223,7 +223,7 @@ function createQualityControlUI(data, schema) {
 
     // Action buttons container
     const buttonsContainer = document.createElement('div');
-    buttonsContainer.classList.add('flex', 'gap-3', 'items-center', 'justify-start', 'my-4');
+    buttonsContainer.classList.add('flex', 'gap-3', 'items-center', 'justify-center', 'my-4');
     wrapper.appendChild(buttonsContainer);
 
     // Validate button
