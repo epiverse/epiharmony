@@ -303,7 +303,7 @@ function ui(divID) {
         <img src="${epiHarmonyLogo}" class="h-10 w-10 sm:h-20 sm:w-20 logo vanilla" alt="epiHarmony logo" />
       </div>
       <div class="min-w-0 px-4 sm:px-6">
-        <h2 class="text-2xl font-bold leading-7 text-white sm:text-5xl sm:tracking-tight" 
+        <h2 class="text-2xl font-bold leading-7 text-white sm:text-5xl sm:tracking-tight"
             style="font-family: 'Dancing Script', cursive;">
           epiHarmony
         </h2>
@@ -317,20 +317,183 @@ function ui(divID) {
   </div>
 </div>
 
+<!-- App Configuration -->
+<div id="app-config-section" class="px-6 sm:px-10 bg-gray-50 border-b border-gray-200">
+  <div id="config-header" class="flex items-center justify-between py-4">
+    <h3 class="text-xl font-bold text-gray-700">epiHarmony Configuration</h3>
+    <!-- Toggle button show/hide panel -->
+    <button id="toggle-config" 
+            class="text-gray-700 bg-white px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-100 
+                   cursor-pointer transition-colors" 
+            aria-expanded="true">
+      Hide configuration panel
+    </button>
+  </div>
+  <!-- Config panel content -->
+  <div id="config-content" class="pb-4 px-4 border-t border-gray-200">
+    <!-- Blueprint File -->
+    <div class="mt-4">
+      <h4 class="text-md font-semibold text-gray-800 mb-1">epiHarmony Blueprint File</h4>
+      <p class="text-sm text-gray-600 mb-2">[Placeholder short text description for blueprint file]</p>
+      <div class="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+        <div class="flex flex-col">
+          <label for="blueprint-url" class="text-sm text-gray-700 mb-1">Enter JSON file URL:</label>
+          <input id="blueprint-url" type="text"
+                 class="block w-full border border-gray-300 rounded px-2 py-1 text-gray-900
+                        focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent 
+                        cursor-text" 
+                 placeholder="https://example.com/blueprint.json" />
+        </div>
+        <div class="flex flex-col">
+          <label for="blueprint-file" class="text-sm text-gray-700 mb-1">Or upload JSON file:</label>
+          <input id="blueprint-file" type="file" accept=".json"
+                 class="cursor-pointer text-sm text-gray-900 file:mr-4 file:py-2 file:px-4
+                        file:rounded file:border-0 file:text-sm file:font-semibold
+                        file:bg-gray-200 hover:file:bg-gray-300" />
+        </div>
+      </div>
+      <div id="blueprint-message" class="mt-3 hidden"></div>
+      <div id="blueprint-error-container" class="hidden mt-2"></div>
+    </div>
+
+    <hr class="my-4"/>
+
+    <!-- LLM API Configuration -->
+    <div>
+      <h4 class="text-md font-semibold text-gray-800 mb-1">LLM API Configuration</h4>
+      <p class="text-sm text-gray-600 mb-2">[Placeholder description for LLM base URL and API key]</p>
+
+      <div class="flex flex-col sm:flex-row gap-4">
+        <div class="flex-1">
+          <label for="llm-base-url" class="text-sm text-gray-700 mb-1 block">Base URL:</label>
+          <input id="llm-base-url" type="text" value="https://api.openai.com/v1"
+                 class="w-full border border-gray-300 rounded px-2 py-1 text-gray-900
+                        focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent 
+                        cursor-text" />
+        </div>
+        <div class="flex-1">
+          <label for="llm-api-key" class="text-sm text-gray-700 mb-1 block">API key:</label>
+          <input id="llm-api-key" type="password"
+                 class="w-full border border-gray-300 rounded px-2 py-1 text-gray-900
+                        focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent 
+                        cursor-text" />
+        </div>
+      </div>
+
+      <div class="mt-3 flex gap-2">
+        <button id="submit-api-key-btn"
+                class="bg-amber-800 text-white px-4 py-2 rounded-md hover:bg-amber-700 cursor-pointer">
+          Submit API key
+        </button>
+        <button id="reset-api-key-btn"
+                class="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 cursor-pointer">
+          Reset all
+        </button>
+      </div>
+      <div id="llm-api-key-message" class="mt-3 hidden"></div>
+    </div>
+
+    <hr class="my-4"/>
+
+    <!-- Model selection -->
+    <div>
+      <h4 class="text-md font-semibold text-gray-800 mb-1">Model Selection</h4>
+      <p class="text-sm text-gray-600 mb-2">[Placeholder description for embedding & chat models]</p>
+
+      <div class="flex flex-col sm:flex-row gap-4">
+        <div class="flex-1">
+          <label for="embedding-model-select" class="text-sm text-gray-700 mb-1 block">Embedding model:</label>
+          <select id="embedding-model-select"
+                  class="w-full border border-gray-300 rounded px-2 py-1 text-gray-900 
+                         focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent 
+                         cursor-pointer">
+            <option value="" disabled selected>Set URL/API key above to see models list</option>
+          </select>
+        </div>
+        <div class="flex-1">
+          <label for="chat-model-select" class="text-sm text-gray-700 mb-1 block">Chat model:</label>
+          <select id="chat-model-select"
+                  class="w-full border border-gray-300 rounded px-2 py-1 text-gray-900
+                         focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent
+                         cursor-pointer">
+            <option value="" disabled selected>Set URL/API key above to see models list</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <hr class="my-4"/>
+
+    <!-- Upload schemas -->
+    <div>
+      <h4 class="text-md font-semibold text-gray-800 mb-1">Upload Schemas</h4>
+      <p class="text-sm text-gray-600 mb-2">[Placeholder description for Source schema and Target schema]</p>
+
+      <div class="flex flex-col sm:flex-row gap-4">
+        <div class="flex-1">
+          <label for="source-schema-url" class="text-sm text-gray-700 mb-1 block">Source schema (JSON Schema):</label>
+          <input id="source-schema-url" type="text"
+                 class="w-full border border-gray-300 rounded px-2 py-1 text-gray-900
+                        focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent
+                        cursor-text"
+                 placeholder="https://example.com/source-schema.json"/>
+        </div>
+        <div class="flex-1">
+          <label for="target-schema-url" class="text-sm text-gray-700 mb-1 block">Target schema (JSON Schema):</label>
+          <input id="target-schema-url" type="text"
+                 class="w-full border border-gray-300 rounded px-2 py-1 text-gray-900
+                        focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent
+                        cursor-text"
+                 placeholder="https://example.com/target-schema.json"/>
+        </div>
+      </div>
+
+      <div id="schemas-message" class="mt-3 hidden"></div>
+    </div>
+
+    <hr class="my-4"/>
+
+    <!-- Upload data -->
+    <div>
+      <h4 class="text-md font-semibold text-gray-800 mb-1">Upload Data</h4>
+      <p class="text-sm text-gray-600 mb-2">[Placeholder description for Target dataset]</p>
+
+      <input id="target-dataset" type="file" accept=".json"
+             class="cursor-pointer text-sm text-gray-900 file:mr-4 file:py-2 file:px-4
+                    file:rounded file:border-0 file:text-sm file:font-semibold
+                    file:bg-gray-200 hover:file:bg-gray-300" />
+
+      <div id="dataset-message" class="mt-3 hidden"></div>
+    </div>
+
+    <!-- Configuration panel Submit / Reset buttons -->
+    <div class="mt-6 flex gap-2 justify-end">
+      <button id="configure-epiharmony-btn"
+              class="bg-amber-800 text-white px-4 py-2 rounded-md hover:bg-amber-700 cursor-pointer">
+        Configure epiHarmony
+      </button>
+      <button id="reset-all-btn"
+              class="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 cursor-pointer">
+        Reset all
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Navigation tabs -->
 <div>
   <!-- Dropdown (mobile users) -->
   <div class="grid grid-cols-1 sm:hidden">
     <select id="nav-select"
-            aria-label="Select a tab" 
-            class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-2 pr-8 pl-3 text-base text-gray-900 
-                   outline-1 -outline-offset-1 outline-gray-300 
+            aria-label="Select a tab"
+            class="col-start-1 row-start-1 w-full appearance-none rounded-md bg-white py-2 pr-8 pl-3 text-base text-gray-900
+                   outline-1 -outline-offset-1 outline-gray-300
                    focus:outline-2 focus:-outline-offset-2 focus:outline-amber-600">
       <option data-tabname="Vocabulary Mapper" selected>Vocabulary Mapper</option>
       <option data-tabname="Data Transform">Data Transform</option>
       <option data-tabname="Quality Control">Quality Control</option>
     </select>
-    <svg class="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end fill-gray-500" 
+    <svg class="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end fill-gray-500"
          viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" data-slot="icon">
       <path fill-rule="evenodd" d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
     </svg>
