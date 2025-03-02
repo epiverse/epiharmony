@@ -50,7 +50,7 @@ const exampleTargetData = [
     },
     {
         "NEWID": 6,
-        "ENTRYAGE": "Sixty",
+        "ENTRYAGE": 60,
         "EDUCATION": 6,
         "HEIGHT": 72,
         "BMI": 26.3,
