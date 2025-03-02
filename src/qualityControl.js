@@ -109,7 +109,7 @@ const exampleSourceSchema = {
         },
 
         ENTRYAGE: {
-            type: "number", // Changed from ["number", "null"] to only allow numbers
+            type: "number",
             description: "Age at entry (QXAGE in years)."
         },
 
@@ -154,7 +154,14 @@ const exampleSourceSchema = {
 
         ALC: {
             type: ["number", "null"],
-            description: "Alcohol intake (grams/day). Null if missing."
+            description: "Alcohol intake (grams/day). Null if missing.",
+            oneOf: [
+                {
+                    type: "number",
+                    minimum: 0
+                },
+                {type: "null"}
+            ]
         },
 
         SMOKE: {
