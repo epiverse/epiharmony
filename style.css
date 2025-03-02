@@ -3,3 +3,7 @@
 .htInvalidCell {
     background-color: #ffe8e8 !important;
 }
+
+.htInvalidCell.current {
+    border: 2px solid red !important;
+}

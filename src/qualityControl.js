@@ -4,46 +4,94 @@ import Ajv from 'ajv';
 // Example target data (for testing purposes)
 const exampleTargetData = [
     {
-        SEQN: 93248,
-        RIDRETH1: 3,
-        RIDAGEYR: 45,
-        RIAGENDR: 1,
-        INCOME: "80000"
+        "NEWID": 1,
+        "ENTRYAGE": 62,
+        "EDUCATION": 4,
+        "HEIGHT": 65,
+        "BMI": 24.8,
+        "ALC": 5.2,
+        "SMOKE": 0
     },
     {
-        SEQN: 93249,
-        RIDRETH1: 4,
-        RIDAGEYR: 22,
-        RIAGENDR: 2,
-        INCOME: "55k"
+        "NEWID": 2,
+        "ENTRYAGE": 58,
+        "EDUCATION": 2,
+        "HEIGHT": 70,
+        "BMI": 28.1,
+        "ALC": 12.0,
+        "SMOKE": 1
     },
     {
-        SEQN: 93250,
-        RIDRETH1: 2,
-        RIDAGEYR: 75,
-        RIAGENDR: 1,
-        INCOME: "120000"
+        "NEWID": 3,
+        "ENTRYAGE": 71,
+        "EDUCATION": 5,
+        "HEIGHT": 68,
+        "BMI": 32.5,
+        "ALC": 0.0,
+        "SMOKE": 2
     },
     {
-        SEQN: 93251,
-        RIDRETH1: 5,
-        RIDAGEYR: "30",
-        RIAGENDR: 2,
-        INCOME: "65000"
+        "NEWID": 4,
+        "ENTRYAGE": 49,
+        "EDUCATION": 3,
+        "HEIGHT": 62,
+        "BMI": 150,
+        "ALC": 20.0,
+        "SMOKE": 0
     },
     {
-        SEQN: 93252,
-        RIDRETH1: 1,
-        RIDAGEYR: 62,
-        RIAGENDR: 1,
-        INCOME: "Unknown"
+        "NEWID": 5,
+        "ENTRYAGE": 85,
+        "EDUCATION": 1,
+        "HEIGHT": 45,
+        "BMI": 21.0,
+        "ALC": null,
+        "SMOKE": null
     },
     {
-        SEQN: 93253,
-        RIDRETH1: 3,
-        RIDAGEYR: -10,
-        RIAGENDR: 2,
-        INCOME: "90000"
+        "NEWID": 6,
+        "ENTRYAGE": "Sixty",
+        "EDUCATION": 6,
+        "HEIGHT": 72,
+        "BMI": 26.3,
+        "ALC": 8.7,
+        "SMOKE": 1
+    },
+    {
+        "NEWID": 7,
+        "ENTRYAGE": 55,
+        "EDUCATION": 9,
+        "HEIGHT": 67,
+        "BMI": 12.0,
+        "ALC": 1.1,
+        "SMOKE": 2
+    },
+    {
+        "NEWID": 8,
+        "ENTRYAGE": 68,
+        "EDUCATION": 4,
+        "HEIGHT": 80,
+        "BMI": 29.5,
+        "ALC": -3,
+        "SMOKE": 0
+    },
+    {
+        "NEWID": 9,
+        "ENTRYAGE": 51,
+        "EDUCATION": 2,
+        "HEIGHT": 69,
+        "BMI": 23.7,
+        "ALC": 15,
+        "SMOKE": 3
+    },
+    {
+        "NEWID": 10,
+        "ENTRYAGE": null,
+        "EDUCATION": null,
+        "HEIGHT": null,
+        "BMI": null,
+        "ALC": null,
+        "SMOKE": null
     }
 ];
 
@@ -51,46 +99,81 @@ const exampleTargetData = [
 // Example source schema (for testing purposes)
 const exampleSourceSchema = {
     $schema: "http://json-schema.org/draft-07/schema#",
-    title: "Dummy NHANES Demographics dataset",
-    description: "A dummy NHANES-like demographic dataset.",
-    type: "array",
-    items: {
-        type: "object",
-        properties: {
-            SEQN: {
-                type: "integer",
-                description: "Respondent sequence number",
-                minimum: 1
-            },
-            RIDRETH1: {
-                type: "integer",
-                description: "Race/Ethnicity Category",
-                enum: [1, 2, 3, 4, 5]
-            },
-            RIDAGEYR: {
-                type: "integer",
-                description: "Age in years at screening",
-                minimum: 0,
-                maximum: 120
-            },
-            RIAGENDR: {
-                type: "integer",
-                description: "Gender",
-                enum: [1, 2]
-            },
-            INCOME: {
-                type: "string",
-                description: "Household income",
-                pattern: "^[0-9]+$"
-            }
+    title: "Ovarian Cancer Cohort Consortium (OC3) Data Schema",
+    type: "object",
+    additionalProperties: false,
+    properties: {
+        NEWID: {
+            type: "integer",
+            description: "Unique ID for each study participant (sequential)."
         },
-        required: ["SEQN", "RIDRETH1", "RIDAGEYR", "RIAGENDR", "INCOME"]
+
+        ENTRYAGE: {
+            type: "number", // Changed from ["number", "null"] to only allow numbers
+            description: "Age at entry (QXAGE in years)."
+        },
+
+        EDUCATION: {
+            description: "Highest level of education",
+            type: ["integer", "null"],
+            enum: [1, 2, 3, 4, 5, 9, null],
+            enumDescriptions: [
+                "Did not finish high school (1)",
+                "High school (2)",
+                "Some college (3)",
+                "Completed college (4)",
+                "Postgraduate (5)",
+                "Unknown (9)",
+                "Missing/not provided"
+            ]
+        },
+
+        HEIGHT: {
+            description: "Height in inches; set missing if <48 or >84.",
+            oneOf: [
+                {
+                    type: "number",
+                    minimum: 48,
+                    maximum: 84
+                },
+                {type: "null"}
+            ]
+        },
+
+        BMI: {
+            description: "Body mass index (kg/m^2); set missing if <14 or >60.",
+            oneOf: [
+                {
+                    type: "number",
+                    minimum: 14,
+                    maximum: 60
+                },
+                {type: "null"}
+            ]
+        },
+
+        ALC: {
+            type: ["number", "null"],
+            description: "Alcohol intake (grams/day). Null if missing."
+        },
+
+        SMOKE: {
+            description: "Smoking status",
+            type: ["integer", "null"],
+            enum: [0, 1, 2, null],
+            enumDescriptions: [
+                "Never (0)",
+                "Former (1)",
+                "Current (2)",
+                "Missing/unknown"
+            ]
+        }
     }
 };
 
 
 /**
- * Initializes the Quality Control tab UI
+ * Initializes the Quality Control tab UI with improved error reporting
  */
 function initQualityControlApp() {
     const container = document.getElementById('quality-control-app');
@@ -102,6 +185,9 @@ function initQualityControlApp() {
     // Create the QC UI
     const qcUI = createQualityControlUI(exampleTargetData, exampleSourceSchema);
     container.appendChild(qcUI);
+
+    // Add styles for error display
+    addErrorStyles();
 }
 
 /**
@@ -179,13 +265,14 @@ function createQualityControlUI(data, schema) {
         'p-4',
         'mt-4',
         'overflow-y-auto',
-        'max-h-80'
+        'max-h-80',
+        'error-summary-container'
     );
     wrapper.appendChild(errorContainer);
 
     // Container for displaying the error messages
     const errorLogDiv = document.createElement('div');
-    errorLogDiv.classList.add('mt-8', 'whitespace-pre-wrap');
+    errorLogDiv.classList.add('whitespace-pre-wrap');
     errorContainer.appendChild(errorLogDiv);
 
     // Copy Errors button
@@ -236,6 +323,100 @@ function createQualityControlUI(data, schema) {
     return wrapper;
 }
 
+/**
+ * Add styles for error display if they don't exist
+ */
+function addErrorStyles() {
+    // Check if styles already exist
+    if (document.getElementById('qc-error-styles')) return;
+
+    // Create style element
+    const style = document.createElement('style');
+    style.id = 'qc-error-styles';
+    style.textContent = `
+        .htInvalidCell {
+            background-color: rgba(239, 68, 68, 0.15) !important;
+        }
+        
+        .htInvalidCell.current {
+            box-shadow: inset 0 0 0 2px rgb(239, 68, 68) !important;
+        }
+    `;
+
+    // Add to document head
+    document.head.appendChild(style);
+}
+
+function isNumericType(schema) {
+    // Check direct type property (string or array)
+    if (typeof schema.type === 'string') {
+        return schema.type === 'integer' || schema.type === 'number';
+    }
+
+    if (Array.isArray(schema.type)) {
+        return schema.type.includes('integer') || schema.type.includes('number');
+    }
+
+    // Check oneOf pattern
+    if (schema.oneOf && Array.isArray(schema.oneOf)) {
+        return schema.oneOf.some(option =>
+            option.type === 'integer' || option.type === 'number');
+    }
+
+    // Check anyOf pattern
+    if (schema.anyOf && Array.isArray(schema.anyOf)) {
+        return schema.anyOf.some(option =>
+            option.type === 'integer' || option.type === 'number');
+    }
+
+    // Check allOf pattern (all must be numeric for this to return true)
+    if (schema.allOf && Array.isArray(schema.allOf)) {
+        return schema.allOf.every(option =>
+            option.type === 'integer' || option.type === 'number');
+    }
+
+    return false;
+}
+
+/**
+ * Determine if a field allows null values based on its schema
+ */
+function allowsNullValues(schema) {
+    // Check if null is explicitly included in type array
+    if (Array.isArray(schema.type) && schema.type.includes('null')) {
+        return true;
+    }
+
+    // Check oneOf pattern for null type
+    if (schema.oneOf && Array.isArray(schema.oneOf)) {
+        return schema.oneOf.some(option => option.type === 'null');
+    }
+
+    // Check anyOf pattern for null type
+    if (schema.anyOf && Array.isArray(schema.anyOf)) {
+        return schema.anyOf.some(option => option.type === 'null');
+    }
+
+    // Check enum for null value
+    if (schema.enum && Array.isArray(schema.enum)) {
+        return schema.enum.includes(null);
+    }
+
+    return false;
+}
+
+/**
+ * Custom renderer that converts empty string to null for numeric fields
+ */
+function emptyToNullRenderer(instance, td, row, col, prop, value, cellProperties) {
+    // Call the original renderer first
+    Handsontable.renderers.TextRenderer.apply(this, arguments);
+
+    // If it's a numeric cell and value is empty string, display as "NULL"
+    if (cellProperties.type === 'numeric' && value === '') {
+        td.innerHTML = '<em class="text-gray-400">NULL</em>';
+    }
+}
 
 /**
  * Build a Handsontable instance with slightly larger text.
@@ -244,12 +425,34 @@ function buildHandsontable(containerEl, data, schema) {
     // Derive column headers and column configurations
     const headers = data.length > 0 ? Object.keys(data[0]) : [];
     const columns = headers.map((header) => {
-        const colSchema = schema?.items?.properties?.[header];
+        // Fix schema access - don't look for items layer
+        const colSchema = schema?.properties?.[header];
         let colType = 'text';
-        if (colSchema?.type === 'integer' || colSchema?.type === 'number') {
-            colType = 'numeric';
+        let colOptions = {};
+
+        if (colSchema) {
+            // Check if field is numeric
+            if (isNumericType(colSchema)) {
+                colType = 'numeric';
+
+                // Add custom options for numeric fields
+                colOptions.allowEmpty = allowsNullValues(colSchema);
+                colOptions.renderer = emptyToNullRenderer;
+            }
+
+            // Handle enums for dropdown
+            if (colSchema.enum && colSchema.enum.length > 0) {
+                colType = 'dropdown';
+                // Filter out null values from enum list for dropdown
+                colOptions.source = colSchema.enum.filter(item => item !== null);
+            }
         }
-        return {data: header, type: colType};
+
+        return {
+            data: header,
+            type: colType,
+            ...colOptions
+        };
     });
 
     // Initialize Handsontable
@@ -264,10 +467,119 @@ function buildHandsontable(containerEl, data, schema) {
         autoWrapCol: true,
         contextMenu: true,
         className: 'htLeft htMiddle text-base',
-        licenseKey: 'non-commercial-and-evaluation'
+        licenseKey: 'non-commercial-and-evaluation',
+        // Handle empty string to null conversion
+        beforeChange: function(changes, source) {
+            if (!changes) return;
+
+            changes.forEach(change => {
+                const [row, prop, oldValue, newValue] = change;
+
+                // Find the column index
+                const colIndex = this.propToCol(prop);
+                if (colIndex === -1) return;
+
+                // Get column metadata
+                const colMeta = this.getCellMeta(row, colIndex);
+
+                // If it's a numeric column and the value is an empty string, set it to null
+                if (colMeta.type === 'numeric' && newValue === '') {
+                    change[3] = null;
+                }
+            });
+        }
     });
 
     return hot;
+}
+
+/**
+ * Displays validation errors with minimal spacing
+ */
+function displayValidationErrors(errors, errorContainer) {
+    // Clear any existing content
+    errorContainer.innerHTML = '';
+
+    // Set container to have minimal spacing
+    errorContainer.style.padding = '0.75rem';
+    errorContainer.style.lineHeight = '1.25';
+
+    if (!errors || errors.length === 0) {
+        const successMsg = document.createElement('div');
+        successMsg.className = 'text-green-600 font-medium';
+        successMsg.textContent = '✓ No errors found';
+        errorContainer.appendChild(successMsg);
+        return;
+    }
+
+    // Group errors by row
+    const errorsByRow = {};
+    errors.forEach(error => {
+        const rowNum = error.rowIndex + 1;
+        if (!errorsByRow[rowNum]) {
+            errorsByRow[rowNum] = [];
+        }
+        errorsByRow[rowNum].push({
+            field: error.field,
+            message: error.message
+        });
+    });
+
+    // Create error summary div
+    const totalRows = Object.keys(errorsByRow).length;
+    const totalErrors = errors.length;
+
+    const summaryDiv = document.createElement('div');
+    summaryDiv.className = 'text-red-600 font-medium';
+    summaryDiv.style.marginBottom = '8px';
+    summaryDiv.textContent = `Found ${totalErrors} validation ${totalErrors === 1 ? 'error' : 'errors'} in ${totalRows} ${totalRows === 1 ? 'row' : 'rows'}`;
+    errorContainer.appendChild(summaryDiv);
+
+    // Create container for error rows
+    const rowsContainer = document.createElement('div');
+    rowsContainer.style.margin = '0';
+    errorContainer.appendChild(rowsContainer);
+
+    // Add row error sections
+    Object.keys(errorsByRow).sort((a, b) => parseInt(a) - parseInt(b)).forEach(rowNum => {
+        const rowErrors = errorsByRow[rowNum];
+
+        // Create row container
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'border-l-4 border-red-400 pl-3';
+        rowDiv.style.marginBottom = '8px';
+        rowDiv.style.paddingTop = '2px';
+        rowDiv.style.paddingBottom = '2px';
+        rowsContainer.appendChild(rowDiv);
+
+        // Row header
+        const rowHeader = document.createElement('div');
+        rowHeader.className = 'font-medium';
+        rowHeader.style.marginBottom = '2px';
+        rowHeader.textContent = `Row ${rowNum}:`;
+        rowDiv.appendChild(rowHeader);
+
+        // Error list
+        const errorList = document.createElement('ul');
+        errorList.className = 'ml-4';
+        errorList.style.margin = '0';
+        errorList.style.paddingLeft = '0.75rem';
+        rowDiv.appendChild(errorList);
+
+        // Add each error
+        rowErrors.forEach(err => {
+            const errorItem = document.createElement('li');
+            errorItem.style.marginBottom = '1px';
+
+            const fieldSpan = document.createElement('span');
+            fieldSpan.className = 'font-mono bg-gray-100 px-1 rounded';
+            fieldSpan.textContent = err.field;
+
+            errorItem.appendChild(fieldSpan);
+            errorItem.appendChild(document.createTextNode(`: ${err.message}`));
+            errorList.appendChild(errorItem);
+        });
+    });
 }
 
 /**
@@ -275,9 +587,6 @@ function buildHandsontable(containerEl, data, schema) {
  * Invalid cells get highlighted, and errors are listed in the error div.
  */
 function validateAgainstSchema(hotInstance, schema, errorMessagesDiv) {
-    // Clear previous messages
-    errorMessagesDiv.textContent = '';
-
     // Clear any previous highlighting
     const totalRows = hotInstance.countRows();
     const totalCols = hotInstance.countCols();
@@ -287,49 +596,59 @@ function validateAgainstSchema(hotInstance, schema, errorMessagesDiv) {
         }
     }
 
-    // Validate the schema
-    const ajv = new Ajv({allErrors: true});
-    const schemaValid = ajv.validateSchema(schema);
-    if (!schemaValid) {
-        errorMessagesDiv.textContent = 'The provided schema is invalid!';
-        console.error('Invalid schema:', ajv.errors);
-        hotInstance.render();
-        return;
-    }
-
     // Get current data from the spreadsheet
     const tableData = hotInstance.getSourceData();
 
-    // Compile & run validation
-    const validateFn = ajv.compile(schema);
+    // Initialize Ajv with strict mode disabled to allow custom keywords
+    const ajv = new Ajv({
+        allErrors: true,
+        strict: false
+    });
+
+    // Create a proper array schema
+    const arraySchema = {
+        type: "array",
+        items: schema
+    };
+
+    // Validate
+    const validateFn = ajv.compile(arraySchema);
     const valid = validateFn(tableData);
 
-    let errorMessages = '';
+    // Collect structured errors
+    const structuredErrors = [];
+
     if (!valid && validateFn.errors) {
         validateFn.errors.forEach((error) => {
-            // E.g. error.instancePath = "/0/RIDAGEYR"
+            // Process errors and highlight cells
             const path = error.instancePath;
             if (path) {
-                const segments = path.split('/').filter(Boolean); // ["0", "RIDAGEYR"]
-                if (segments.length === 2) {
+                const segments = path.split('/').filter(Boolean);
+                if (segments.length >= 2) {
                     const rowIndex = parseInt(segments[0], 10);
                     const propertyName = segments[1];
                     const colHeaders = hotInstance.getColHeader();
                     const colIndex = colHeaders.indexOf(propertyName);
+
                     if (colIndex > -1) {
                         // Highlight the invalid cell
                         hotInstance.setCellMeta(rowIndex, colIndex, 'className', 'htInvalidCell');
                     }
+
+                    // Add to structured errors
+                    structuredErrors.push({
+                        rowIndex: rowIndex,
+                        field: propertyName,
+                        message: error.message,
+                        path: error.instancePath
+                    });
                 }
             }
-            errorMessages += `Error at ${error.instancePath}: ${error.message}\n`;
         });
-    } else {
-        errorMessages = 'No errors found.';
     }
 
-    // Display errors
-    errorMessagesDiv.textContent = errorMessages;
+    // Display errors using the enhanced function
+    displayValidationErrors(structuredErrors, errorMessagesDiv);
 
     // Re-render the table to apply the highlights
     hotInstance.render();
