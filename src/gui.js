@@ -456,8 +456,8 @@ function ui(divID) {
     <!-- Upload data -->
     <div>
       <h4 class="text-md font-semibold text-gray-800 mb-1">Upload Data</h4>
-      <p class="text-sm text-gray-600 mb-2">[Placeholder description for Target dataset]</p>
-      <label for="target-schema-url" class="text-sm font-medium text-gray-700 mb-1 block">Target data (JSON):</label>
+      <p class="text-sm text-gray-600 mb-2">[Placeholder description for Source dataset]</p>
+      <label for="target-schema-url" class="text-sm font-medium text-gray-700 mb-1 block">Source data (JSON):</label>
       <input id="target-dataset" type="file" accept=".json"
              class="cursor-pointer text-sm text-gray-900 file:mr-4 file:py-2 file:px-4
                     file:rounded file:border-0 file:text-sm file:font-semibold

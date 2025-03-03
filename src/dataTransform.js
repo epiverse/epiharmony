@@ -237,7 +237,7 @@ function createAppLayout(container) {
   container.innerHTML = `
     <div class="mb-4">
       <h2 class="text-xl font-bold">Data Transform</h2>
-      <p class="text-gray-600">Transform variables from source to target datasets</p>
+      <p class="text-gray-600">Transform variables in the source dataset to the target schema</p>
     </div>
     
     <!-- Mapping selector -->
@@ -266,8 +266,8 @@ function createAppLayout(container) {
           <button id="transform-button" class="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 text-sm font-medium">Transform</button>
         </div>
         
-        <!-- Output area -->
-        <div class="output-container flex-shrink-0 min-h-[150px] max-h-[250px] flex flex-col">
+        <!-- Output area (fixed height now) -->
+        <div class="output-container flex-shrink-0 h-[150px] flex flex-col">
           <div class="output-header bg-gray-100 border-b border-gray-300 p-2 font-medium text-sm">Output</div>
           <div class="output-area bg-gray-50 p-3 flex-grow overflow-auto">
             <pre id="output-content" class="font-mono text-sm whitespace-pre-wrap"></pre>
@@ -298,7 +298,7 @@ function createAppLayout(container) {
         <!-- Chat messages area -->
         <div id="chat-messages" class="flex-grow p-4 overflow-y-auto">
           <div class="bg-gray-100 rounded-lg p-3 mb-3 max-w-3xl mx-auto">
-            <p class="text-gray-800">I'm the epiHarmony assistant. I can help you write and understand data transformation code for harmonizing variables in your target dataset to the source schema.</p>
+            <p class="text-gray-800">I'm the epiHarmony data transform assistant. I can help you write and understand data transformation code for harmonizing variables in your source dataset to the target schema.</p>
             <p class="text-gray-800 mt-2">Select a mapping from the dropdown above and use the code editor to implement the transformation.</p>
           </div>
         </div>
@@ -744,8 +744,7 @@ async function executeRCode(code, outputElement) {
   try {
     outputElement.textContent = 'Running R code...';
     // This would run the R code in a real implementation
-    outputElement.textContent = 'R code execution is not implemented in this demo.\n' +
-      'In a real implementation, this would execute the R code using WebR.';
+    outputElement.textContent = 'WebR is not loaded. R code execution requires WebR.\n';
   } catch (error) {
     outputElement.textContent = 'Error executing R code: ' + error.message;
   }
@@ -1260,5 +1259,103 @@ console.log("Sample row after:", JSON.stringify(transformedData[0]));
 
 // Return the transformed data
 return transformedData;
+`;
+}
+
+/**
+ * Generate R code for BMXHT → HEIGHT transformation
+ */
+function generateHeightTransformR() {
+  return `library(dplyr)
+
+transform_bmxht_to_height <- function(df) {
+  df %>%
+    mutate(
+      # Convert cm to inches (1 cm ~ 0.393701 inches)
+      HEIGHT = ifelse(
+        !is.na(BMXHT),
+        round(BMXHT * 0.393701, 1),  # round to 1 decimal place
+        NA
+      ),
+      # Enforce 48–84 inch range; otherwise set to NA
+      HEIGHT = ifelse(
+        HEIGHT >= 48 & HEIGHT <= 84,
+        HEIGHT,
+        NA
+      )
+    ) %>%
+    # Remove the original BMXHT column
+    select(-BMXHT)
+}
+
+`;
+}
+
+/**
+ * Generate R code for DMDEDUC2 → EDUCATION transformation
+ */
+function generateEducationTransformR() {
+  return `library(dplyr)
+
+transform_dmdeduc2_to_education <- function(df) {
+  df %>%
+    mutate(
+      EDUCATION = case_when(
+        DMDEDUC2 %in% c(1, 2) ~ 1,  # Did not finish high school
+        DMDEDUC2 == 3         ~ 2,  # High school
+        DMDEDUC2 == 4         ~ 3,  # Some college
+        DMDEDUC2 == 5         ~ 4,  # Completed college
+        DMDEDUC2 %in% c(7, 9) ~ 9,  # Unknown
+        TRUE                  ~ NA_real_
+      )
+    ) %>%
+    select(-DMDEDUC2)
+}
+`;
+}
+
+/**
+ * Generate R code for ALQ130 → ALC transformation
+ */
+function generateAlcoholTransformR() {
+  return `library(dplyr)
+
+transform_alq130_to_alc <- function(df) {
+  # Each standard US drink is ~14 grams of pure alcohol
+  grams_per_drink <- 14
+  
+  df %>%
+    mutate(
+      ALC = case_when(
+        ALQ130 %in% 1:14 ~ ALQ130 * grams_per_drink,
+        ALQ130 == 15     ~ 15 * grams_per_drink,   # "15 drinks or more"
+        TRUE             ~ NA_real_
+      )
+    ) %>%
+    select(-ALQ130)
+}
+`;
+}
+
+/**
+ * Generate R code for {SMQ020, SMQ040} → SMOKE transformation
+ */
+function generateSmokeTransformR() {
+  return `library(dplyr)
+
+transform_smoking_status <- function(df) {
+  df %>%
+    mutate(
+      SMOKE = case_when(
+        # Any missing/refused/don't know for either variable => NA
+        is.na(SMQ020) | is.na(SMQ040) ~ NA_real_,
+        SMQ020 == 2                   ~ 0,  # Never smoked (0)
+        SMQ020 == 1 & SMQ040 == 3     ~ 1,  # Former (1)
+        SMQ020 == 1 & SMQ040 %in% c(1,2) ~ 2,  # Current (2)
+        TRUE                          ~ NA_real_
+      )
+    ) %>%
+    select(-SMQ020, -SMQ040)
+}
 `;
 }
