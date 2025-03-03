@@ -11,6 +11,7 @@ import {
     getDataRecord
 } from './src/db.js';
 
+import {initDataTransformApp} from './src/dataTransform.js';
 import {initQualityControlApp} from './src/qualityControl.js';
 
 import {OpenAI} from 'openai';
@@ -23,6 +24,7 @@ function init() {
     ui('app');
     setupConfigSection();
     setupNavigation();
+    initDataTransformApp();
     initQualityControlApp();
 }
 
