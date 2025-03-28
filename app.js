@@ -11,9 +11,9 @@ import {
     getDataRecord
 } from './src/db.js';
 
+import {initVocabularyMapperApp} from "./src/vocabularyMapper.js";
 import {initDataTransformApp} from './src/dataTransform.js';
 import {initQualityControlApp} from './src/qualityControl.js';
-import {initVocabularyMapperApp} from "./src/vocabularyMapper.js";
 
 import {OpenAI} from 'openai';
 import {Ajv} from 'ajv';

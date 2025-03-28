@@ -1,4 +1,6 @@
-import Handsontable from 'handsontable';
+/* src/qualityControl.js */
+
+// Import Ajv for JSON schema validation
 import Ajv from 'ajv';
 
 // Example target data (for testing purposes)
@@ -95,7 +97,6 @@ const exampleTargetData = [
     }
 ];
 
-
 // Example source schema (for testing purposes)
 const exampleSourceSchema = {
     $schema: "http://json-schema.org/draft-07/schema#",
@@ -107,12 +108,10 @@ const exampleSourceSchema = {
             type: "integer",
             description: "Unique ID for each study participant (sequential)."
         },
-
         ENTRYAGE: {
             type: "number",
             description: "Age at entry (QXAGE in years)."
         },
-
         EDUCATION: {
             description: "Highest level of education",
             type: ["integer", "null"],
@@ -127,7 +126,6 @@ const exampleSourceSchema = {
                 "Missing/not provided"
             ]
         },
-
         HEIGHT: {
             description: "Height in inches; set missing if <48 or >84.",
             oneOf: [
@@ -139,7 +137,6 @@ const exampleSourceSchema = {
                 {type: "null"}
             ]
         },
-
         BMI: {
             description: "Body mass index (kg/m^2); set missing if <14 or >60.",
             oneOf: [
@@ -151,7 +148,6 @@ const exampleSourceSchema = {
                 {type: "null"}
             ]
         },
-
         ALC: {
             type: ["number", "null"],
             description: "Alcohol intake (grams/day). Null if missing.",
@@ -163,7 +159,6 @@ const exampleSourceSchema = {
                 {type: "null"}
             ]
         },
-
         SMOKE: {
             description: "Smoking status",
             type: ["integer", "null"],
@@ -178,9 +173,11 @@ const exampleSourceSchema = {
     }
 };
 
+// Store the grid API globally so we can access it from any function
+let gridApi = null;
 
 /**
- * Initializes the Quality Control tab UI with improved error reporting
+ * Initializes the Quality Control tab UI with AG-Grid
  */
 function initQualityControlApp() {
     const container = document.getElementById('quality-control-app');
@@ -192,168 +189,11 @@ function initQualityControlApp() {
     // Create the QC UI
     const qcUI = createQualityControlUI(exampleTargetData, exampleSourceSchema);
     container.appendChild(qcUI);
-
-    // Add styles for error display
-    addErrorStyles();
 }
 
 /**
- * Create the spreadsheet and control UI for Quality Control.
+ * Check if a schema type is numeric
  */
-function createQualityControlUI(data, schema) {
-    const wrapper = document.createElement('div');
-    wrapper.classList.add('qc-wrapper', 'mt-4');
-
-    // Spreadsheet container
-    const tableContainer = document.createElement('div');
-    tableContainer.id = 'qc-table-container';
-    tableContainer.classList.add(
-        'w-full',
-        'overflow-auto',
-        'border',
-        'border-gray-200',
-        'rounded',
-        'mb-6',
-        'max-h-96'
-    );
-    wrapper.appendChild(tableContainer);
-
-    // Build Handsontable instance
-    const hot = buildHandsontable(tableContainer, data, schema);
-
-    // Action buttons container
-    const buttonsContainer = document.createElement('div');
-    buttonsContainer.classList.add('flex', 'gap-3', 'items-center', 'justify-center', 'my-4');
-    wrapper.appendChild(buttonsContainer);
-
-    // Validate button
-    const validateBtn = document.createElement('button');
-    validateBtn.textContent = 'Validate';
-    validateBtn.classList.add(
-        'bg-amber-800',
-        'text-white',
-        'px-4',
-        'py-2',
-        'rounded-md',
-        'hover:bg-amber-700',
-        'cursor-pointer'
-    );
-    validateBtn.addEventListener('click', () => {
-        validateAgainstSchema(hot, schema, errorLogDiv);
-    });
-    buttonsContainer.appendChild(validateBtn);
-
-    // Download JSON button
-    const downloadBtn = document.createElement('button');
-    downloadBtn.textContent = 'Download data';
-    downloadBtn.classList.add(
-        'bg-white',
-        'text-gray-700',
-        'border',
-        'border-gray-300',
-        'px-4',
-        'py-2',
-        'rounded-md',
-        'hover:bg-gray-50',
-        'cursor-pointer'
-    );
-    downloadBtn.addEventListener('click', () => {
-        downloadDataAsJson(hot);
-    });
-    buttonsContainer.appendChild(downloadBtn);
-
-    // Error messages container
-    const errorContainer = document.createElement('div');
-    errorContainer.classList.add(
-        'relative',
-        'border',
-        'border-gray-300',
-        'rounded-md',
-        'p-4',
-        'mt-4',
-        'overflow-y-auto',
-        'max-h-80',
-        'error-summary-container'
-    );
-    wrapper.appendChild(errorContainer);
-
-    // Container for displaying the error messages
-    const errorLogDiv = document.createElement('div');
-    errorLogDiv.classList.add('whitespace-pre-wrap');
-    errorContainer.appendChild(errorLogDiv);
-
-    // Copy Errors button
-    const copyBtn = document.createElement('button');
-    copyBtn.innerHTML = '<span class="button-text">Copy Errors</span>';
-    copyBtn.classList.add(
-        'absolute',
-        'top-2',
-        'right-2',
-        'bg-white',
-        'text-gray-500',
-        'border',
-        'border-gray-400',
-        'hover:text-gray-600',
-        'hover:bg-gray-50',
-        'rounded',
-        'px-2',
-        'py-1',
-        'text-xs',
-        'flex',
-        'items-center',
-        'gap-1',
-        'cursor-pointer'
-    );
-    const buttonTextEl = copyBtn.querySelector('.button-text');
-    const originalClasses = copyBtn.className;
-    copyBtn.addEventListener('click', async () => {
-        if (!buttonTextEl) return;
-        try {
-            await navigator.clipboard.writeText(errorLogDiv.innerText);
-            copyBtn.className = 'absolute top-2 right-2 bg-white text-green-600 border border-green-400 rounded px-2 py-1 text-xs flex items-center gap-1 cursor-pointer';
-            buttonTextEl.textContent = '✓';
-            setTimeout(() => {
-                copyBtn.className = originalClasses;
-                buttonTextEl.textContent = 'Copy Errors';
-            }, 1000);
-        } catch (err) {
-            copyBtn.className = 'absolute top-2 right-2 bg-white text-red-600 border border-red-400 rounded px-2 py-1 text-xs flex items-center gap-1 cursor-pointer';
-            buttonTextEl.textContent = '!';
-            setTimeout(() => {
-                copyBtn.className = originalClasses;
-                buttonTextEl.textContent = 'Copy Errors';
-            }, 1000);
-        }
-    });
-    errorContainer.appendChild(copyBtn);
-
-    return wrapper;
-}
-
-/**
- * Add styles for error display if they don't exist
- */
-function addErrorStyles() {
-    // Check if styles already exist
-    if (document.getElementById('qc-error-styles')) return;
-
-    // Create style element
-    const style = document.createElement('style');
-    style.id = 'qc-error-styles';
-    style.textContent = `
-        .htInvalidCell {
-            background-color: rgba(239, 68, 68, 0.15) !important;
-        }
-        
-        .htInvalidCell.current {
-            box-shadow: inset 0 0 0 2px rgb(239, 68, 68) !important;
-        }
-    `;
-
-    // Add to document head
-    document.head.appendChild(style);
-}
-
 function isNumericType(schema) {
     // Check direct type property (string or array)
     if (typeof schema.type === 'string') {
@@ -413,109 +253,574 @@ function allowsNullValues(schema) {
 }
 
 /**
- * Custom renderer that converts empty string to null for numeric fields
+ * Create the AG-Grid and control UI for Quality Control.
  */
-function emptyToNullRenderer(instance, td, row, col, prop, value, cellProperties) {
-    // Call the original renderer first
-    Handsontable.renderers.TextRenderer.apply(this, arguments);
+function createQualityControlUI(data, schema) {
+    const wrapper = document.createElement('div');
+    wrapper.classList.add('qc-wrapper', 'mt-4');
 
-    // If it's a numeric cell and value is empty string, display as "NULL"
-    if (cellProperties.type === 'numeric' && value === '') {
-        td.innerHTML = '<em class="text-gray-400">NULL</em>';
-    }
+    // Create title for the Quality Control section
+    const title = document.createElement('h2');
+    title.textContent = 'Quality Control';
+    title.classList.add('text-xl', 'font-bold', 'mb-4');
+    wrapper.appendChild(title);
+
+    // Explanation text
+    const explanation = document.createElement('p');
+    explanation.textContent = 'The table below displays the data for quality control checks. Edit cells to update values and click Validate to check against the schema.';
+    explanation.classList.add('mb-4', 'text-gray-700');
+    wrapper.appendChild(explanation);
+
+    // AG-Grid container
+    const gridContainer = document.createElement('div');
+    gridContainer.id = 'ag-grid-container';
+    gridContainer.style.height = '400px';
+    gridContainer.classList.add('ag-theme-alpine', 'w-full');
+    wrapper.appendChild(gridContainer);
+
+    // Initialize AG-Grid
+    initAgGrid(gridContainer, data, schema);
+
+    // Action buttons container
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.classList.add('flex', 'gap-3', 'items-center', 'justify-center', 'my-4');
+    wrapper.appendChild(buttonsContainer);
+
+    // Create error messages container first so we can reference it
+    const errorContainer = document.createElement('div');
+    errorContainer.classList.add(
+        'relative',
+        'border',
+        'border-gray-300',
+        'rounded-md',
+        'p-4',
+        'mt-4',
+        'overflow-y-auto',
+        'max-h-80',
+        'error-summary-container'
+    );
+
+    // Container for displaying the error messages
+    const errorLogDiv = document.createElement('div');
+    errorLogDiv.classList.add('whitespace-pre-wrap');
+    errorContainer.appendChild(errorLogDiv);
+
+    // Validate button
+    const validateBtn = document.createElement('button');
+    validateBtn.textContent = 'Validate';
+    validateBtn.classList.add(
+        'bg-amber-800',
+        'text-white',
+        'px-4',
+        'py-2',
+        'rounded-md',
+        'hover:bg-amber-700',
+        'cursor-pointer'
+    );
+    validateBtn.addEventListener('click', () => {
+        // Make sure gridApi is available
+        if (!gridApi) {
+            errorLogDiv.innerHTML = '<div class="text-red-600 font-medium">Error: Grid API not available. Please try again.</div>';
+            return;
+        }
+
+        validateAgainstSchema(schema, errorLogDiv);
+    });
+    buttonsContainer.appendChild(validateBtn);
+
+    // Download JSON button
+    const downloadBtn = document.createElement('button');
+    downloadBtn.textContent = 'Download data';
+    downloadBtn.classList.add(
+        'bg-white',
+        'text-gray-700',
+        'border',
+        'border-gray-300',
+        'px-4',
+        'py-2',
+        'rounded-md',
+        'hover:bg-gray-50',
+        'cursor-pointer'
+    );
+    downloadBtn.addEventListener('click', () => {
+        if (!gridApi) {
+            alert('Error: Grid API not available. Please try again.');
+            return;
+        }
+
+        downloadDataAsJson();
+    });
+    buttonsContainer.appendChild(downloadBtn);
+
+    wrapper.appendChild(errorContainer);
+
+    // Copy Errors button
+    const copyBtn = document.createElement('button');
+    copyBtn.innerHTML = '<span class="button-text">Copy Errors</span>';
+    copyBtn.classList.add(
+        'absolute',
+        'top-2',
+        'right-2',
+        'bg-white',
+        'text-gray-500',
+        'border',
+        'border-gray-400',
+        'hover:text-gray-600',
+        'hover:bg-gray-50',
+        'rounded',
+        'px-2',
+        'py-1',
+        'text-xs',
+        'flex',
+        'items-center',
+        'gap-1',
+        'cursor-pointer'
+    );
+    const buttonTextEl = copyBtn.querySelector('.button-text');
+    const originalClasses = copyBtn.className;
+    copyBtn.addEventListener('click', async () => {
+        if (!buttonTextEl) return;
+        try {
+            await navigator.clipboard.writeText(errorLogDiv.innerText);
+            copyBtn.className = 'absolute top-2 right-2 bg-white text-green-600 border border-green-400 rounded px-2 py-1 text-xs flex items-center gap-1 cursor-pointer';
+            buttonTextEl.textContent = '✓';
+            setTimeout(() => {
+                copyBtn.className = originalClasses;
+                buttonTextEl.textContent = 'Copy Errors';
+            }, 1000);
+        } catch (err) {
+            copyBtn.className = 'absolute top-2 right-2 bg-white text-red-600 border border-red-400 rounded px-2 py-1 text-xs flex items-center gap-1 cursor-pointer';
+            buttonTextEl.textContent = '!';
+            setTimeout(() => {
+                copyBtn.className = originalClasses;
+                buttonTextEl.textContent = 'Copy Errors';
+            }, 1000);
+        }
+    });
+    errorContainer.appendChild(copyBtn);
+
+    // Add CSS for invalid cells
+    addErrorStyles();
+
+    return wrapper;
 }
 
 /**
- * Build a Handsontable instance with slightly larger text.
+ * Initialize AG-Grid with the data
  */
-function buildHandsontable(containerEl, data, schema) {
-    // Derive column headers and column configurations
-    const headers = data.length > 0 ? Object.keys(data[0]) : [];
-    const columns = headers.map((header) => {
-        // Fix schema access - don't look for items layer
-        const colSchema = schema?.properties?.[header];
-        let colType = 'text';
-        let colOptions = {};
+function initAgGrid(containerEl, data, schema) {
+    // Derive column definitions from the data
+    const columnDefs = deriveColumnDefs(data, schema);
 
-        if (colSchema) {
-            // Check if field is numeric
-            if (isNumericType(colSchema)) {
-                colType = 'numeric';
+    // Grid options
+    const gridOptions = {
+        columnDefs: columnDefs,
+        rowData: data,
+        defaultColDef: {
+            flex: 1,
+            minWidth: 100,
+            resizable: true,
+            sortable: true,
+            filter: true,
+            editable: true,
+            cellStyle: params => {
+                return { textAlign: params.colDef.type === 'numericColumn' ? 'right' : 'left' };
+            }
+        },
+        animateRows: true,
+        pagination: true,
+        paginationAutoPageSize: true,
+        // Add an onCellValueChanged handler to validate data after editing
+        onCellValueChanged: params => {
+            validateCell(params.node, params.column, params.newValue, schema);
+        },
+        // Store the API reference when the grid is ready
+        onGridReady: params => {
+            gridApi = params.api;
+            params.api.sizeColumnsToFit();
+        }
+    };
 
-                // Add custom options for numeric fields
-                colOptions.allowEmpty = allowsNullValues(colSchema);
-                colOptions.renderer = emptyToNullRenderer;
+    // Create the grid
+    agGrid.createGrid(containerEl, gridOptions);
+}
+
+/**
+ * Derive column definitions from the data and schema
+ */
+function deriveColumnDefs(data, schema) {
+    if (!data || data.length === 0) {
+        return [];
+    }
+
+    const headers = Object.keys(data[0]);
+    return headers.map(header => {
+        const colDef = {
+            field: header,
+            headerName: header
+        };
+
+        // Add schema-based information if available
+        const fieldSchema = schema?.properties?.[header];
+        if (fieldSchema) {
+            // Add tooltip with schema description
+            if (fieldSchema.description) {
+                colDef.headerTooltip = fieldSchema.description;
             }
 
-            // Handle enums for dropdown
-            if (colSchema.enum && colSchema.enum.length > 0) {
-                colType = 'dropdown';
-                // Add a special "NULL" option at the end if null is allowed
-                if (allowsNullValues(colSchema)) {
-                    const enumValues = colSchema.enum.filter(item => item !== null);
-                    colOptions.source = [...enumValues, 'NULL'];
+            // Handle different data types
+            if (isNumericType(fieldSchema)) {
+                colDef.type = 'numericColumn';
+                colDef.filter = 'agNumberColumnFilter';
 
-                    // Add a hook to transform 'NULL' text value to actual null
-                    colOptions.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                        Handsontable.renderers.DropdownRenderer.apply(this, arguments);
-                        if (value === null) {
-                            td.innerHTML = '<em class="text-gray-400">NULL</em>';
+                // For numeric columns, set up value parser to handle empty strings
+                colDef.valueParser = (params) => {
+                    if (params.newValue === '' || params.newValue === null || params.newValue === undefined) {
+                        return null;
+                    }
+                    return Number(params.newValue);
+                };
+
+                // Add cell class rules for validation
+                colDef.cellClassRules = getCellClassRulesForNumeric(fieldSchema);
+            }
+
+            // Check for enum values to create dropdown editor
+            if (fieldSchema.enum && fieldSchema.enum.length > 0) {
+                colDef.cellEditor = 'agSelectCellEditor';
+
+                // Create values array for dropdown, adding a "NULL" option if nulls are allowed
+                const enumValues = fieldSchema.enum.filter(item => item !== null);
+                if (allowsNullValues(fieldSchema)) {
+                    colDef.cellEditorParams = {
+                        values: [...enumValues, 'NULL']
+                    };
+
+                    // Special value formatter for handling NULL values
+                    colDef.valueFormatter = (params) => {
+                        if (params.value === null || params.value === undefined) {
+                            return 'NULL';
                         }
+
+                        // Use enum descriptions if available
+                        if (fieldSchema.enumDescriptions) {
+                            const index = fieldSchema.enum.indexOf(params.value);
+                            if (index >= 0 && index < fieldSchema.enumDescriptions.length) {
+                                return fieldSchema.enumDescriptions[index];
+                            }
+                        }
+
+                        return params.value;
+                    };
+
+                    // Special value parser to convert "NULL" string back to null
+                    colDef.valueParser = (params) => {
+                        if (params.newValue === 'NULL') {
+                            return null;
+                        }
+                        return params.newValue;
                     };
                 } else {
-                    colOptions.source = colSchema.enum.filter(item => item !== null);
+                    colDef.cellEditorParams = {
+                        values: enumValues
+                    };
                 }
+
+                // Add cell class rules for validation
+                colDef.cellClassRules = getCellClassRulesForEnum(fieldSchema);
             }
         }
 
-        return {
-            data: header,
-            type: colType,
-            ...colOptions
+        return colDef;
+    });
+}
+
+/**
+ * Create cell class rules for numeric fields based on schema constraints
+ */
+function getCellClassRulesForNumeric(schema) {
+    const rules = {};
+
+    // If the field allows nulls, we need to handle that case
+    const allowsNull = allowsNullValues(schema);
+
+    // Check for numeric constraints in the schema
+    let min = undefined;
+    let max = undefined;
+
+    // Direct constraints
+    if (schema.minimum !== undefined) min = schema.minimum;
+    if (schema.maximum !== undefined) max = schema.maximum;
+
+    // Check in oneOf patterns
+    if (schema.oneOf && Array.isArray(schema.oneOf)) {
+        schema.oneOf.forEach(option => {
+            if (option.type === 'number' || option.type === 'integer') {
+                if (option.minimum !== undefined && (min === undefined || option.minimum > min)) {
+                    min = option.minimum;
+                }
+                if (option.maximum !== undefined && (max === undefined || option.maximum < max)) {
+                    max = option.maximum;
+                }
+            }
+        });
+    }
+
+    // Create validation rules
+    if (min !== undefined) {
+        rules['invalid-cell'] = params => {
+            // Skip validation for null values if they're allowed
+            if ((params.value === null || params.value === undefined) && allowsNull) {
+                return false;
+            }
+            return params.value !== null && params.value < min;
         };
+    }
+
+    if (max !== undefined) {
+        rules['invalid-cell'] = params => {
+            // Skip validation for null values if they're allowed
+            if ((params.value === null || params.value === undefined) && allowsNull) {
+                return false;
+            }
+            return params.value !== null && params.value > max;
+        };
+    }
+
+    // If both min and max are defined, combine them
+    if (min !== undefined && max !== undefined) {
+        rules['invalid-cell'] = params => {
+            // Skip validation for null values if they're allowed
+            if ((params.value === null || params.value === undefined) && allowsNull) {
+                return false;
+            }
+            return params.value !== null && (params.value < min || params.value > max);
+        };
+    }
+
+    // Return empty rules if no constraints found
+    return rules;
+}
+
+/**
+ * Create cell class rules for enum fields based on schema constraints
+ */
+function getCellClassRulesForEnum(schema) {
+    const rules = {};
+
+    if (schema.enum && Array.isArray(schema.enum)) {
+        rules['invalid-cell'] = params => {
+            // If the value is null and null is allowed, it's valid
+            if ((params.value === null || params.value === undefined) && schema.enum.includes(null)) {
+                return false;
+            }
+
+            // Otherwise check if the value is in the enum
+            return params.value !== null && !schema.enum.includes(params.value);
+        };
+    }
+
+    return rules;
+}
+
+/**
+ * Validate a cell value against the schema
+ */
+function validateCell(rowNode, column, value, schema) {
+    const field = column.getColId();
+    const fieldSchema = schema?.properties?.[field];
+
+    if (!fieldSchema) return;
+
+    let isValid = true;
+
+    // For numeric fields, check constraints
+    if (isNumericType(fieldSchema)) {
+        // Check if null is allowed
+        if ((value === null || value === undefined) && !allowsNullValues(fieldSchema)) {
+            isValid = false;
+        }
+        // Check minimum constraint
+        else if (value !== null && fieldSchema.minimum !== undefined && value < fieldSchema.minimum) {
+            isValid = false;
+        }
+        // Check maximum constraint
+        else if (value !== null && fieldSchema.maximum !== undefined && value > fieldSchema.maximum) {
+            isValid = false;
+        }
+
+        // Check oneOf constraints
+        if (fieldSchema.oneOf && Array.isArray(fieldSchema.oneOf)) {
+            let oneOfValid = false;
+
+            for (const option of fieldSchema.oneOf) {
+                // For null value, check if null type is allowed
+                if ((value === null || value === undefined) && option.type === 'null') {
+                    oneOfValid = true;
+                    break;
+                }
+
+                // For numeric value, check constraints
+                if ((option.type === 'number' || option.type === 'integer') && value !== null) {
+                    let optionValid = true;
+
+                    if (option.minimum !== undefined && value < option.minimum) {
+                        optionValid = false;
+                    }
+
+                    if (option.maximum !== undefined && value > option.maximum) {
+                        optionValid = false;
+                    }
+
+                    if (optionValid) {
+                        oneOfValid = true;
+                        break;
+                    }
+                }
+            }
+
+            isValid = oneOfValid;
+        }
+    }
+
+    // For enum fields, check if value is in enum
+    if (fieldSchema.enum && Array.isArray(fieldSchema.enum)) {
+        isValid = fieldSchema.enum.includes(value);
+    }
+
+    // Apply cell class based on validation result
+    if (!isValid) {
+        column.getColDef().cellClassRules = {
+            'invalid-cell': () => true
+        };
+    } else {
+        column.getColDef().cellClassRules = {};
+    }
+
+    // Force cell refresh to show validation result
+    rowNode.setDataValue(field, value);
+}
+
+/**
+ * Add styles for error display if they don't exist
+ */
+function addErrorStyles() {
+    // Check if styles already exist
+    if (document.getElementById('qc-error-styles')) return;
+
+    // Create style element
+    const style = document.createElement('style');
+    style.id = 'qc-error-styles';
+    style.textContent = `
+        .invalid-cell {
+            background-color: rgba(239, 68, 68, 0.15) !important;
+        }
+        
+        .ag-cell.ag-cell-focus.invalid-cell {
+            border: 2px solid rgb(239, 68, 68) !important;
+        }
+    `;
+
+    // Add to document head
+    document.head.appendChild(style);
+}
+
+/**
+ * Validate the AG-Grid data against the JSON schema with Ajv.
+ * Invalid cells get highlighted, and errors are listed in the error div.
+ */
+function validateAgainstSchema(schema, errorMessagesDiv) {
+    // Get current data from the grid
+    const tableData = [];
+
+    // Iterate through all rows to get data
+    gridApi.forEachNode(node => {
+        tableData.push(node.data);
     });
 
-    // Initialize Handsontable
-    const hot = new Handsontable(containerEl, {
-        data: data,
-        columns: columns,
-        rowHeaders: true,
-        colHeaders: headers,
-        stretchH: 'all',
-        height: 'auto',
-        autoWrapRow: true,
-        autoWrapCol: true,
-        contextMenu: true,
-        className: 'htLeft htMiddle text-base',
-        licenseKey: 'non-commercial-and-evaluation',
-        // Handle empty string to null conversion and special dropdown values
-        beforeChange: function(changes, source) {
-            if (!changes) return;
+    // Initialize Ajv with strict mode disabled to allow custom keywords
+    const ajv = new Ajv({
+        allErrors: true,
+        strict: false
+    });
 
-            changes.forEach(change => {
-                const [row, prop, oldValue, newValue] = change;
+    // Create a proper array schema
+    const arraySchema = {
+        type: "array",
+        items: schema
+    };
 
-                // Find the column index
-                const colIndex = this.propToCol(prop);
-                if (colIndex === -1) return;
+    // Validate
+    const validateFn = ajv.compile(arraySchema);
+    const valid = validateFn(tableData);
 
-                // Get column metadata
-                const colMeta = this.getCellMeta(row, colIndex);
+    // Collect structured errors
+    const structuredErrors = [];
+    const cellsToHighlight = [];
 
-                // If it's a numeric column and the value is an empty string, set it to null
-                if (colMeta.type === 'numeric' && newValue === '') {
-                    change[3] = null;
+    if (!valid && validateFn.errors) {
+        validateFn.errors.forEach((error) => {
+            // Process errors and highlight cells
+            const path = error.instancePath;
+            if (path) {
+                const segments = path.split('/').filter(Boolean);
+                if (segments.length >= 2) {
+                    const rowIndex = parseInt(segments[0], 10);
+                    const propertyName = segments[1];
+
+                    // Find the row node
+                    let rowNode = null;
+                    gridApi.forEachNode((node, index) => {
+                        if (index === rowIndex) {
+                            rowNode = node;
+                        }
+                    });
+
+                    if (rowNode) {
+                        // Add to structured errors
+                        structuredErrors.push({
+                            rowIndex: rowIndex,
+                            field: propertyName,
+                            message: error.message,
+                            path: error.instancePath
+                        });
+
+                        // Add to cells to highlight
+                        cellsToHighlight.push({
+                            rowNode: rowNode,
+                            field: propertyName
+                        });
+                    }
                 }
+            }
+        });
+    }
 
-                // Handle 'NULL' selection in dropdowns
-                if (colMeta.type === 'dropdown' && newValue === 'NULL') {
-                    change[3] = null;
-                }
+    // Highlight invalid cells using cellClassRules
+    gridApi.forEachNode(node => {
+        gridApi.refreshCells({
+            rowNodes: [node],
+            force: true
+        });
+    });
+
+    // Apply 'invalid-cell' class to cells with errors
+    cellsToHighlight.forEach(cell => {
+        const column = gridApi.getColumnDef(cell.field);
+        if (column) {
+            column.cellClassRules = {
+                'invalid-cell': () => true
+            };
+            gridApi.refreshCells({
+                rowNodes: [cell.rowNode],
+                columns: [cell.field],
+                force: true
             });
         }
     });
 
-    return hot;
+    // Display errors
+    displayValidationErrors(structuredErrors, errorMessagesDiv);
 }
 
 /**
@@ -608,83 +913,16 @@ function displayValidationErrors(errors, errorContainer) {
 }
 
 /**
- * Validate the Handsontable data against the JSON schema with Ajv.
- * Invalid cells get highlighted, and errors are listed in the error div.
- */
-function validateAgainstSchema(hotInstance, schema, errorMessagesDiv) {
-    // Clear any previous highlighting
-    const totalRows = hotInstance.countRows();
-    const totalCols = hotInstance.countCols();
-    for (let r = 0; r < totalRows; r++) {
-        for (let c = 0; c < totalCols; c++) {
-            hotInstance.setCellMeta(r, c, 'className', '');
-        }
-    }
-
-    // Get current data from the spreadsheet
-    const tableData = hotInstance.getSourceData();
-
-    // Initialize Ajv with strict mode disabled to allow custom keywords
-    const ajv = new Ajv({
-        allErrors: true,
-        strict: false
-    });
-
-    // Create a proper array schema
-    const arraySchema = {
-        type: "array",
-        items: schema
-    };
-
-    // Validate
-    const validateFn = ajv.compile(arraySchema);
-    const valid = validateFn(tableData);
-
-    // Collect structured errors
-    const structuredErrors = [];
-
-    if (!valid && validateFn.errors) {
-        validateFn.errors.forEach((error) => {
-            // Process errors and highlight cells
-            const path = error.instancePath;
-            if (path) {
-                const segments = path.split('/').filter(Boolean);
-                if (segments.length >= 2) {
-                    const rowIndex = parseInt(segments[0], 10);
-                    const propertyName = segments[1];
-                    const colHeaders = hotInstance.getColHeader();
-                    const colIndex = colHeaders.indexOf(propertyName);
-
-                    if (colIndex > -1) {
-                        // Highlight the invalid cell
-                        hotInstance.setCellMeta(rowIndex, colIndex, 'className', 'htInvalidCell');
-                    }
-
-                    // Add to structured errors
-                    structuredErrors.push({
-                        rowIndex: rowIndex,
-                        field: propertyName,
-                        message: error.message,
-                        path: error.instancePath
-                    });
-                }
-            }
-        });
-    }
-
-    // Display errors using the enhanced function
-    displayValidationErrors(structuredErrors, errorMessagesDiv);
-
-    // Re-render the table to apply the highlights
-    hotInstance.render();
-}
-
-/**
  * Download the table data as JSON.
  */
-function downloadDataAsJson(hotInstance) {
-    const editedData = hotInstance.getSourceData();
-    const jsonData = JSON.stringify(editedData, null, 2);
+function downloadDataAsJson() {
+    const rowData = [];
+
+    gridApi.forEachNode(node => {
+        rowData.push(node.data);
+    });
+
+    const jsonData = JSON.stringify(rowData, null, 2);
     const blob = new Blob([jsonData], {type: 'application/json'});
     const url = URL.createObjectURL(blob);
 
