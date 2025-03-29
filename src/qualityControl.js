@@ -1,10 +1,7 @@
-/* src/qualityControl.js */
-
-// Import Ajv for JSON schema validation
 import Ajv from 'ajv';
 
-// Example target data (for testing purposes)
-const exampleTargetData = [
+// Example source data (for testing purposes)
+const exampleSourceData = [
     {
         "NEWID": 1,
         "ENTRYAGE": 62,
@@ -97,8 +94,8 @@ const exampleTargetData = [
     }
 ];
 
-// Example source schema (for testing purposes)
-const exampleSourceSchema = {
+// Example target schema (for testing purposes)
+const exampleTargetSchema = {
     $schema: "http://json-schema.org/draft-07/schema#",
     title: "Ovarian Cancer Cohort Consortium (OC3) Data Schema",
     type: "object",
@@ -173,8 +170,10 @@ const exampleSourceSchema = {
     }
 };
 
-// Store the grid API globally so we can access it from any function
+// Store the grid API and error information globally
 let gridApi = null;
+// Map to store validation error messages by cell location (rowIndex-field)
+let cellErrorMessages = {};
 
 /**
  * Initializes the Quality Control tab UI with AG-Grid
@@ -183,12 +182,13 @@ function initQualityControlApp() {
     const container = document.getElementById('quality-control-app');
     if (!container) return;
 
-    // Clear any existing content
     container.innerHTML = '';
 
-    // Create the QC UI
-    const qcUI = createQualityControlUI(exampleTargetData, exampleSourceSchema);
+    const qcUI = createQualityControlUI(exampleSourceData, exampleTargetSchema);
     container.appendChild(qcUI);
+
+    // Handle grid sizing when tab becomes visible
+    setupTabChangeListeners();
 }
 
 /**
@@ -424,20 +424,23 @@ function initAgGrid(containerEl, data, schema) {
             filter: true,
             editable: true,
             cellStyle: params => {
-                return { textAlign: params.colDef.type === 'numericColumn' ? 'right' : 'left' };
-            }
+                return {textAlign: params.colDef.type === 'numericColumn' ? 'right' : 'left'};
+            },
+            tooltipComponent: 'CustomTooltip'
         },
         animateRows: true,
         pagination: true,
         paginationAutoPageSize: true,
-        // Add an onCellValueChanged handler to validate data after editing
-        onCellValueChanged: params => {
-            validateCell(params.node, params.column, params.newValue, schema);
-        },
-        // Store the API reference when the grid is ready
+        rowHeight: 30,
+        enableBrowserTooltips: true,
         onGridReady: params => {
             gridApi = params.api;
-            params.api.sizeColumnsToFit();
+            const gridContainer = document.getElementById('ag-grid-container');
+            if (gridContainer && isElementVisible(gridContainer)) {
+                setTimeout(() => {
+                    params.api.sizeColumnsToFit();
+                }, 0);
+            }
         }
     };
 
@@ -480,9 +483,6 @@ function deriveColumnDefs(data, schema) {
                     }
                     return Number(params.newValue);
                 };
-
-                // Add cell class rules for validation
-                colDef.cellClassRules = getCellClassRulesForNumeric(fieldSchema);
             }
 
             // Check for enum values to create dropdown editor
@@ -525,9 +525,6 @@ function deriveColumnDefs(data, schema) {
                         values: enumValues
                     };
                 }
-
-                // Add cell class rules for validation
-                colDef.cellClassRules = getCellClassRulesForEnum(fieldSchema);
             }
         }
 
@@ -626,11 +623,8 @@ function getCellClassRulesForEnum(schema) {
 /**
  * Validate a cell value against the schema
  */
-function validateCell(rowNode, column, value, schema) {
-    const field = column.getColId();
-    const fieldSchema = schema?.properties?.[field];
-
-    if (!fieldSchema) return;
+function validateCell(fieldSchema, value) {
+    if (!fieldSchema) return true;
 
     let isValid = true;
 
@@ -688,17 +682,7 @@ function validateCell(rowNode, column, value, schema) {
         isValid = fieldSchema.enum.includes(value);
     }
 
-    // Apply cell class based on validation result
-    if (!isValid) {
-        column.getColDef().cellClassRules = {
-            'invalid-cell': () => true
-        };
-    } else {
-        column.getColDef().cellClassRules = {};
-    }
-
-    // Force cell refresh to show validation result
-    rowNode.setDataValue(field, value);
+    return isValid;
 }
 
 /**
@@ -719,6 +703,19 @@ function addErrorStyles() {
         .ag-cell.ag-cell-focus.invalid-cell {
             border: 2px solid rgb(239, 68, 68) !important;
         }
+        
+        .ag-tooltip {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            max-width: 300px;
+            white-space: pre-wrap;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
     `;
 
     // Add to document head
@@ -730,6 +727,12 @@ function addErrorStyles() {
  * Invalid cells get highlighted, and errors are listed in the error div.
  */
 function validateAgainstSchema(schema, errorMessagesDiv) {
+    // First, clear all validation highlights by refreshing all cells
+    resetValidationHighlights();
+
+    // Clear previous error messages
+    cellErrorMessages = {};
+
     // Get current data from the grid
     const tableData = [];
 
@@ -756,7 +759,7 @@ function validateAgainstSchema(schema, errorMessagesDiv) {
 
     // Collect structured errors
     const structuredErrors = [];
-    const cellsToHighlight = [];
+    const cellsToHighlight = new Set(); // Use Set to avoid duplicates
 
     if (!valid && validateFn.errors) {
         validateFn.errors.forEach((error) => {
@@ -785,32 +788,112 @@ function validateAgainstSchema(schema, errorMessagesDiv) {
                             path: error.instancePath
                         });
 
-                        // Add to cells to highlight
-                        cellsToHighlight.push({
+                        // Add to cells to highlight (as an object reference to maintain the same instance)
+                        const cellKey = `${rowIndex}-${propertyName}`;
+                        const cellToHighlight = {
                             rowNode: rowNode,
-                            field: propertyName
-                        });
+                            field: propertyName,
+                            rowIndex: rowIndex
+                        };
+
+                        // Add using the cell key to maintain unique cells
+                        cellsToHighlight.add(cellToHighlight);
+
+                        // Store error message for tooltip, append if multiple errors exist
+                        if (!cellErrorMessages[cellKey]) {
+                            cellErrorMessages[cellKey] = [];
+                        }
+                        cellErrorMessages[cellKey].push(error.message);
                     }
                 }
             }
         });
     }
 
-    // Highlight invalid cells using cellClassRules
+    // Only highlight cells that actually have errors
+    highlightInvalidCells(Array.from(cellsToHighlight), schema);
+
+    // Display errors
+    displayValidationErrors(structuredErrors, errorMessagesDiv);
+}
+
+/**
+ * Reset all validation highlights
+ */
+function resetValidationHighlights() {
+    // Clear all highlighting
     gridApi.forEachNode(node => {
-        gridApi.refreshCells({
+        // Get all column fields
+        const allFields = gridApi.getColumnDefs().map(col => col.field);
+
+        // Create a refresh cells params with all columns
+        const refreshCellsParams = {
             rowNodes: [node],
+            columns: allFields,
             force: true
+        };
+
+        // Clear any invalid-cell class
+        allFields.forEach(field => {
+            const column = gridApi.getColumnDef(field);
+            if (column) {
+                // Remove any cell class rules
+                delete column.cellClassRules;
+
+                // Remove tooltip function if it exists
+                if (column.tooltipValueGetter) {
+                    delete column.tooltipValueGetter;
+                }
+            }
         });
+
+        gridApi.refreshCells(refreshCellsParams);
     });
 
-    // Apply 'invalid-cell' class to cells with errors
+    // Clear error messages
+    cellErrorMessages = {};
+}
+
+/**
+ * Highlight only cells that fail validation
+ */
+function highlightInvalidCells(cellsToHighlight, schema) {
     cellsToHighlight.forEach(cell => {
         const column = gridApi.getColumnDef(cell.field);
-        if (column) {
+        const fieldSchema = schema?.properties?.[cell.field];
+
+        if (column && fieldSchema) {
+            // Set cell class rule to highlight this specific cell
             column.cellClassRules = {
-                'invalid-cell': () => true
+                'invalid-cell': (params) => {
+                    // Only apply to cells in the specific row we're targeting
+                    if (params.node !== cell.rowNode) {
+                        return false;
+                    }
+
+                    // Validate the current cell value
+                    return !validateCell(fieldSchema, params.value);
+                }
             };
+
+            // Add tooltip to show error message on hover
+            column.tooltipValueGetter = (params) => {
+                // Only show tooltip for invalid cells
+                if (params.node === cell.rowNode) {
+                    const cellKey = `${cell.rowIndex}-${cell.field}`;
+                    const errors = cellErrorMessages[cellKey];
+
+                    if (errors && errors.length > 0) {
+                        // Format all error messages with bullet points
+                        const formattedErrors = errors.map(err => `• ${err}`).join('\n');
+                        return `Validation Error:\n${formattedErrors}`;
+                    }
+                    return 'Validation Error: Invalid value';
+                }
+                return null;
+            };
+
+            // Refresh just this cell
             gridApi.refreshCells({
                 rowNodes: [cell.rowNode],
                 columns: [cell.field],
@@ -818,9 +901,6 @@ function validateAgainstSchema(schema, errorMessagesDiv) {
             });
         }
     });
-
-    // Display errors
-    displayValidationErrors(structuredErrors, errorMessagesDiv);
 }
 
 /**
@@ -928,10 +1008,54 @@ function downloadDataAsJson() {
 
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'target-data.json';
+    a.download = 'epiharmony-source-data.json';
     a.click();
 
     URL.revokeObjectURL(url);
+}
+
+/**
+ * Check if an element is visible (not hidden by CSS)
+ */
+function isElementVisible(el) {
+    if (!el) return false;
+    const rect = el.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0 &&
+        window.getComputedStyle(el).display !== 'none' &&
+        window.getComputedStyle(el).visibility !== 'hidden';
+}
+
+/**
+ * Set up listeners for tab changes to handle grid resizing
+ */
+function setupTabChangeListeners() {
+    // For desktop tabs
+    const tabLinks = document.querySelectorAll('.tab-link[data-tabname="Quality Control"]');
+    tabLinks.forEach(link => {
+        link.addEventListener('click', handleQualityControlTabActivation);
+    });
+
+    // For mobile dropdown
+    const navSelect = document.getElementById('nav-select');
+    if (navSelect) {
+        navSelect.addEventListener('change', (event) => {
+            if (event.target.value === 'Quality Control') {
+                handleQualityControlTabActivation();
+            }
+        });
+    }
+}
+
+/**
+ * Handle when the Quality Control tab is activated
+ */
+function handleQualityControlTabActivation() {
+    // Allow DOM to update and make the tab visible first
+    setTimeout(() => {
+        if (gridApi) {
+            gridApi.sizeColumnsToFit();
+        }
+    }, 50);  // Small delay to ensure the tab is visible
 }
 
 export {initQualityControlApp};
