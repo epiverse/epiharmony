@@ -1,5 +1,3 @@
-import Ajv from 'ajv';
-
 // Mapping data structure
 const mapping = {
   "DMDEDUC2 → EDUCATION": {
@@ -262,8 +260,8 @@ function createAppLayout(container) {
         
         <!-- Controls -->
         <div class="editor-controls bg-gray-100 border-t border-b border-gray-300 p-2 flex justify-end gap-2">
-          <button id="undo-button" class="bg-gray-600 text-white px-4 py-1 rounded hover:bg-gray-700 text-sm font-medium opacity-50 cursor-pointer" disabled>Undo</button>
-          <button id="transform-button" class="bg-amber-600 text-white px-4 py-1 rounded hover:bg-amber-700 text-sm font-medium cursor-pointer">Transform</button>
+          <button id="undo-button" class="bg-gray-600 text-white px-4 py-1 rounded hover:bg-gray-700 text-sm font-medium opacity-50" disabled>Undo</button>
+          <button id="transform-button" class="bg-amber-600 text-white px-4 py-1 rounded hover:bg-amber-700 text-sm font-medium">Transform</button>
         </div>
         
         <!-- Output area (fixed height now) -->
@@ -615,16 +613,8 @@ function setupDataTable() {
         }, 100);
       }
     },
-    // Special renderer for null values
     getRowStyle: params => {
       return { background: params.rowIndex % 2 === 0 ? "#ffffff" : "#f3f4f6" };
-    },
-    // Custom null value formatter
-    valueFormatter: params => {
-      if (params.value === null) {
-        return 'NULL';
-      }
-      return params.value;
     }
   };
 
@@ -672,6 +662,14 @@ function deriveColumnDefs(data) {
       colDef.type = 'numericColumn';
       colDef.filter = 'agNumberColumnFilter';
     }
+
+    // Add value formatter for null values
+    colDef.valueFormatter = params => {
+      if (params.value === null) {
+        return 'NULL';
+      }
+      return params.value;
+    };
 
     return colDef;
   });
@@ -760,7 +758,7 @@ function executeTransformation(code, outputElement) {
     // Check if the transformation can be applied by examining the source fields
     const canApplyTransform = checkTransformationApplicability(currentMappingKey, currentData);
     if (!canApplyTransform) {
-      outputElement.textContent = "Notice: Transformation cannot be applied because the source fields are not present in the current data. This could mean that the transformation has already been applied and the code has not undergone a change since.";
+      outputElement.textContent = "Notice: Transformation cannot be applied because the source fields are not present in the current data.       outputElement.textContent = \"Notice: Transformation cannot be applied because the source fields are not present in the current data. This could mean that the transformation has already been applied and the code has since not undergone any changes.";
       console.log("Transformation not applicable - source fields not found");
       return;
     }
