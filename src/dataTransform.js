@@ -1,4 +1,4 @@
-import Handsontable from 'handsontable';
+import Ajv from 'ajv';
 
 // Mapping data structure
 const mapping = {
@@ -185,7 +185,7 @@ const targetData = [
 
 // Global variables
 let editor = null;
-let handsontable = null;
+let gridApi = null;
 let originalData = null;  // Initial data at app start
 let currentData = null;   // Current state of data
 let previousData = null;  // State before latest transformation
@@ -276,7 +276,7 @@ function createAppLayout(container) {
       </div>
       
       <!-- Data table container -->
-      <div id="data-table-container" class="flex-1 border border-gray-200 rounded-md h-[600px] lg:h-[700px] overflow-hidden">
+      <div id="data-table-container" class="flex-1 border border-gray-200 rounded-md h-[600px] lg:h-[700px] overflow-hidden ag-theme-alpine">
       </div>
     </div>
     
@@ -550,6 +550,123 @@ function setupActionButtons() {
 }
 
 /**
+ * Set up the data table using AG-Grid
+ */
+function setupDataTable() {
+  console.log("Setting up AG-Grid data table");
+  const container = document.getElementById('data-table-container');
+  if (!container) {
+    console.error("Data table container not found");
+    return;
+  }
+
+  // Ensure we have data
+  if (!currentData || !Array.isArray(currentData) || currentData.length === 0) {
+    console.error("No data available for table setup");
+    const errorMessage = document.createElement('div');
+    errorMessage.className = 'p-4 text-red-600';
+    errorMessage.textContent = 'No data available to display';
+    container.appendChild(errorMessage);
+    return;
+  }
+
+  // Generate column definitions
+  const columnDefs = deriveColumnDefs(currentData);
+
+  // Create AG-Grid options
+  const gridOptions = {
+    columnDefs: columnDefs,
+    rowData: currentData,
+    defaultColDef: {
+      flex: 1,
+      minWidth: 100,
+      resizable: true,
+      sortable: true,
+      filter: true,
+      editable: false, // Read-only since this grid is for display only
+      cellStyle: params => {
+        return {
+          textAlign: params.colDef.type === 'numericColumn' ? 'right' : 'left',
+          backgroundColor: params.value === null ? '#f9fafb' : null // Light gray background for null values
+        };
+      }
+    },
+    animateRows: true,
+    pagination: true,
+    paginationAutoPageSize: true,
+    rowHeight: 35,
+    onGridReady: params => {
+      gridApi = params.api;
+      // Resize columns to fit when grid is ready
+      if (isElementVisible(container)) {
+        setTimeout(() => {
+          params.api.sizeColumnsToFit();
+        }, 100);
+      }
+    },
+    // Special renderer for null values
+    getRowStyle: params => {
+      return { background: params.rowIndex % 2 === 0 ? "#ffffff" : "#f3f4f6" };
+    },
+    // Custom null value formatter
+    valueFormatter: params => {
+      if (params.value === null) {
+        return 'NULL';
+      }
+      return params.value;
+    }
+  };
+
+  // Create the grid
+  agGrid.createGrid(container, gridOptions);
+
+  // Set up tab change listeners to handle resize
+  setupTabChangeListeners();
+}
+
+/**
+ * Derive column definitions from the data
+ */
+function deriveColumnDefs(data) {
+  if (!data || data.length === 0) {
+    return [];
+  }
+
+  // Get all unique keys from all objects in the data
+  const allKeys = new Set();
+  data.forEach(item => {
+    Object.keys(item).forEach(key => allKeys.add(key));
+  });
+
+  // Convert to array and sort alphabetically for consistent display
+  const headers = Array.from(allKeys).sort();
+
+  return headers.map(header => {
+    const colDef = {
+      field: header,
+      headerName: header
+    };
+
+    // Determine the column type based on the first non-null value found
+    let valueType = null;
+    for (const row of data) {
+      if (row[header] !== null && row[header] !== undefined) {
+        valueType = typeof row[header];
+        break;
+      }
+    }
+
+    // Add type-specific formatting
+    if (valueType === 'number') {
+      colDef.type = 'numericColumn';
+      colDef.filter = 'agNumberColumnFilter';
+    }
+
+    return colDef;
+  });
+}
+
+/**
  * Update the table with new data
  */
 function updateTable(data) {
@@ -558,25 +675,61 @@ function updateTable(data) {
     return;
   }
 
-  // Get headers from the data
-  const headers = Object.keys(data[0]);
-  console.log("Updating table with headers:", headers);
+  if (gridApi) {
+    // First, derive new column definitions based on the transformed data
+    const newColumnDefs = deriveColumnDefs(data);
 
-  if (handsontable) {
-    // Update data and headers
-    handsontable.updateSettings({
-      data: data,
-      colHeaders: headers
-    });
+    // Update column definitions first
+    gridApi.setGridOption('columnDefs', newColumnDefs);
 
-    // Force a complete redraw
+    // Then update the row data
+    gridApi.setGridOption('rowData', data);
+
+    // Force a refresh of the grid
     setTimeout(() => {
-      handsontable.render();
-      console.log("Table updated and rendered");
-    }, 100);
+      gridApi.redrawRows();
+    }, 50);
+
+    console.log("Updated grid with new columns:", newColumnDefs.map(col => col.field));
   } else {
-    console.error("Cannot update table: Handsontable not initialized");
+    console.error("Cannot update table: AG-Grid API not initialized");
   }
+}
+
+/**
+ * Set up listeners for tab changes to handle grid resizing
+ */
+function setupTabChangeListeners() {
+  // For desktop tabs
+  const tabLinks = document.querySelectorAll('.tab-link[data-tabname="Data Transform"]');
+  tabLinks.forEach(link => {
+    link.addEventListener('click', handleDataTransformTabActivation);
+  });
+
+  // For mobile dropdown
+  const navSelect = document.getElementById('nav-select');
+  if (navSelect) {
+    navSelect.addEventListener('change', (event) => {
+      if (event.target.value === 'Data Transform') {
+        handleDataTransformTabActivation();
+      }
+    });
+  }
+}
+
+/**
+ * Handle when the Data Transform tab is activated
+ */
+function handleDataTransformTabActivation() {
+  // Allow DOM to update and make the tab visible first
+  setTimeout(() => {
+    if (gridApi) {
+      gridApi.sizeColumnsToFit();
+    }
+    if (editor) {
+      editor.refresh();
+    }
+  }, 50);  // Small delay to ensure the tab is visible
 }
 
 /**
@@ -765,100 +918,6 @@ function initializeWebR() {
 }
 
 /**
- * Set up the data table using Handsontable
- */
-function setupDataTable() {
-  console.log("Setting up data table");
-  const container = document.getElementById('data-table-container');
-  if (!container) {
-    console.error("Data table container not found");
-    return;
-  }
-
-  // Clear any existing content
-  container.innerHTML = '';
-
-  // Create an inner container with specific height to fix rendering issues
-  const innerContainer = document.createElement('div');
-  innerContainer.id = 'hot-table-inner';
-  innerContainer.style.width = '100%';
-  innerContainer.style.height = '100%';
-  innerContainer.style.overflow = 'hidden';
-  container.appendChild(innerContainer);
-
-  // Ensure we have data
-  if (!currentData || !Array.isArray(currentData) || currentData.length === 0) {
-    console.error("No data available for table setup");
-    const errorMessage = document.createElement('div');
-    errorMessage.className = 'p-4 text-red-600';
-    errorMessage.textContent = 'No data available to display';
-    innerContainer.appendChild(errorMessage);
-    return;
-  }
-
-  // Get initial headers
-  const initialHeaders = Object.keys(currentData[0] || {});
-  console.log("Initial headers:", initialHeaders);
-
-  try {
-    // Create and configure Handsontable
-    handsontable = new Handsontable(innerContainer, {
-      data: currentData,
-      rowHeaders: true,
-      colHeaders: initialHeaders,
-      height: '100%',
-      width: '100%',
-      licenseKey: 'non-commercial-and-evaluation',
-      stretchH: 'all',
-      columnSorting: true,
-      contextMenu: false,
-      readOnly: true,
-      preventOverflow: 'horizontal',
-      renderAllRows: true,
-      cells: function() {
-        return { className: 'htCenter htMiddle font-mono text-sm' };
-      },
-      // Custom renderer for null values
-      renderer: function(instance, td, row, col, prop, value, cellProperties) {
-        Handsontable.renderers.TextRenderer.apply(this, arguments);
-
-        if (value === null) {
-          td.innerHTML = '<em class="text-gray-400">NULL</em>';
-          td.className += ' text-gray-500';
-        }
-      },
-      // Hooks
-      afterInit: function() {
-        console.log("Handsontable initialized");
-      },
-      afterChange: function(changes, source) {
-        if (source === 'loadData') {
-          console.log("Data loaded into table");
-        }
-      },
-      afterRender: function(isForced) {
-        console.log("Table rendered, forced:", isForced);
-      }
-    });
-
-    // Force a render after a delay
-    setTimeout(() => {
-      if (handsontable) {
-        handsontable.render();
-        console.log("Initial table render triggered");
-      }
-    }, 300);
-
-  } catch (error) {
-    console.error("Error creating Handsontable:", error);
-    const errorMessage = document.createElement('div');
-    errorMessage.className = 'p-4 text-red-600';
-    errorMessage.textContent = 'Error creating table: ' + error.message;
-    innerContainer.appendChild(errorMessage);
-  }
-}
-
-/**
  * Set up the chat interface
  */
 function setupChatInterface() {
@@ -965,6 +1024,17 @@ function simulateAssistantResponse() {
 
     addMessageToChat('assistant', responseText);
   }, 1000);
+}
+
+/**
+ * Check if an element is visible (not hidden by CSS)
+ */
+function isElementVisible(el) {
+  if (!el) return false;
+  const rect = el.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0 &&
+    window.getComputedStyle(el).display !== 'none' &&
+    window.getComputedStyle(el).visibility !== 'hidden';
 }
 
 /**
