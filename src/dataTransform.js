@@ -262,8 +262,8 @@ function createAppLayout(container) {
         
         <!-- Controls -->
         <div class="editor-controls bg-gray-100 border-t border-b border-gray-300 p-2 flex justify-end gap-2">
-          <button id="undo-button" class="bg-gray-600 text-white px-4 py-1 rounded hover:bg-gray-700 text-sm font-medium opacity-50" disabled>Undo</button>
-          <button id="transform-button" class="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 text-sm font-medium">Transform</button>
+          <button id="undo-button" class="bg-gray-600 text-white px-4 py-1 rounded hover:bg-gray-700 text-sm font-medium opacity-50 cursor-pointer" disabled>Undo</button>
+          <button id="transform-button" class="bg-amber-600 text-white px-4 py-1 rounded hover:bg-amber-700 text-sm font-medium cursor-pointer">Transform</button>
         </div>
         
         <!-- Output area (fixed height now) -->
@@ -355,6 +355,14 @@ function updateSelectedMapping(mappingKey) {
     } else {
       editor.setValue(generateRCode(mappingKey));
     }
+  }
+
+  // If we're switching to a new mapping, we might need to reset the data
+  // to its original state so transformations can be applied
+  const canApplyTransform = checkTransformationApplicability(mappingKey, currentData);
+  if (!canApplyTransform) {
+    // Reset to original data if the transformation isn't applicable to current data
+    resetToOriginalData();
   }
 }
 
@@ -505,8 +513,9 @@ function setupActionButtons() {
       // For JavaScript, execute the transformation
       setTimeout(() => {
         const code = editor.getValue();
-        // Save the code for potential reuse
-        lastCode = code;
+
+        // Check if the code has been modified since the last execution
+        const isCodeModified = lastCode !== code;
 
         // Execute transformation
         executeTransformation(code, outputContent);
@@ -516,8 +525,10 @@ function setupActionButtons() {
         transformButton.textContent = 'Transform';
 
         // Enable undo button since we now have a previous state
-        undoButton.disabled = false;
-        undoButton.style.opacity = '1';
+        if (previousData) {
+          undoButton.disabled = false;
+          undoButton.style.opacity = '1';
+        }
       }, 100);
     } else {
       // For R, just show the code (no actual transformation)
@@ -746,6 +757,14 @@ function executeTransformation(code, outputElement) {
       return;
     }
 
+    // Check if the transformation can be applied by examining the source fields
+    const canApplyTransform = checkTransformationApplicability(currentMappingKey, currentData);
+    if (!canApplyTransform) {
+      outputElement.textContent = "Notice: Transformation cannot be applied because the source fields are not present in the current data. This could mean that the transformation has already been applied and the code has not undergone a change since.";
+      console.log("Transformation not applicable - source fields not found");
+      return;
+    }
+
     // Store the current state before transformation for undo
     previousData = JSON.parse(JSON.stringify(currentData));
     console.log("Saved previous state with", previousData.length, "rows");
@@ -839,6 +858,9 @@ function executeTransformation(code, outputElement) {
 
     // Update the table display
     updateTable(result);
+
+    // Save the code that was just successfully executed
+    lastCode = code;
 
     // Show success message
     outputElement.textContent = 'Transformation completed successfully!';
@@ -1055,6 +1077,75 @@ function loadCSS(url) {
   link.rel = 'stylesheet';
   link.href = url;
   document.head.appendChild(link);
+}
+
+/**
+ * Check if a transformation can be applied to the current data
+ * by checking if the source fields exist in the data
+ */
+function checkTransformationApplicability(mappingKey, data) {
+  if (!data || data.length === 0 || !mappingKey || !mapping[mappingKey]) {
+    return false;
+  }
+
+  // Get the first data item to check for field presence
+  const firstRow = data[0];
+
+  // Get the source and target concepts from the mapping
+  const mapDef = mapping[mappingKey];
+
+  // Check source fields based on the mapping type
+  switch (mappingKey) {
+    case 'DMDEDUC2 → EDUCATION':
+      // Check if DMDEDUC2 exists (source) and EDUCATION doesn't (target not already transformed)
+      return 'DMDEDUC2' in firstRow && !('EDUCATION' in firstRow);
+
+    case 'BMXHT → HEIGHT':
+      // Check if BMXHT exists (source) and HEIGHT doesn't (target not already transformed)
+      return 'BMXHT' in firstRow && !('HEIGHT' in firstRow);
+
+    case 'ALQ130 → ALC':
+      // Check if ALQ130 exists (source) and ALC doesn't (target not already transformed)
+      return 'ALQ130' in firstRow && !('ALC' in firstRow);
+
+    case '{ SMQ020, SMQ040 } → SMOKE':
+      // Check if both SMQ020 and SMQ040 exist (sources) and SMOKE doesn't (target not already transformed)
+      return 'SMQ020' in firstRow && 'SMQ040' in firstRow && !('SMOKE' in firstRow);
+
+    default:
+      // For unknown mappings, assume it's applicable
+      return true;
+  }
+}
+
+/**
+ * Reset to original data
+ */
+function resetToOriginalData() {
+  if (originalData) {
+    // Reset current data to original data
+    currentData = JSON.parse(JSON.stringify(originalData));
+
+    // Update the table
+    updateTable(currentData);
+
+    console.log("Reset data to original state");
+
+    // Clear previous data to disable undo
+    previousData = null;
+
+    // Update UI to reflect the reset
+    const undoButton = document.getElementById('undo-button');
+    if (undoButton) {
+      undoButton.disabled = true;
+      undoButton.style.opacity = '0.5';
+    }
+
+    const outputContent = document.getElementById('output-content');
+    if (outputContent) {
+      outputContent.textContent = 'Data reset to original state.';
+    }
+  }
 }
 
 // ==========================================
