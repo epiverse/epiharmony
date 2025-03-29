@@ -267,7 +267,7 @@ function createQualityControlUI(data, schema) {
 
     // Explanation text
     const explanation = document.createElement('p');
-    explanation.textContent = 'The table below displays the data for quality control checks. Edit cells to update values and click Validate to check against the schema.';
+    explanation.textContent = 'The table below displays the source data for quality control. Edit cells to update values and click "Validate" to check against the schema.';
     explanation.classList.add('mb-4', 'text-gray-700');
     wrapper.appendChild(explanation);
 
@@ -324,7 +324,7 @@ function createQualityControlUI(data, schema) {
             return;
         }
 
-        validateAgainstSchema(schema, errorLogDiv);
+        validateAgainstSchema(schema, errorLogDiv, true);
     });
     buttonsContainer.appendChild(validateBtn);
 
@@ -431,7 +431,7 @@ function initAgGrid(containerEl, data, schema) {
         animateRows: true,
         pagination: true,
         paginationAutoPageSize: true,
-        rowHeight: 30,
+        rowHeight: 35,
         enableBrowserTooltips: true,
         onGridReady: params => {
             gridApi = params.api;
@@ -440,6 +440,14 @@ function initAgGrid(containerEl, data, schema) {
                 setTimeout(() => {
                     params.api.sizeColumnsToFit();
                 }, 0);
+            }
+        },
+        onCellValueChanged: params => {
+            const errorContainer = document.querySelector('.error-summary-container > div');
+            if (errorContainer) {
+                setTimeout(() => {
+                    validateAgainstSchema(schema, errorContainer, false);
+                }, 50); // delay to avoid performance issues with rapid edits
             }
         }
     };
@@ -726,9 +734,10 @@ function addErrorStyles() {
  * Validate the AG-Grid data against the JSON schema with Ajv.
  * Invalid cells get highlighted, and errors are listed in the error div.
  */
-function validateAgainstSchema(schema, errorMessagesDiv) {
-    // First, clear all validation highlights by refreshing all cells
-    resetValidationHighlights();
+function validateAgainstSchema(schema, errorMessagesDiv, isFullValidation = true) {
+    if (isFullValidation) {
+        resetValidationHighlights();
+    }
 
     // Clear previous error messages
     cellErrorMessages = {};
