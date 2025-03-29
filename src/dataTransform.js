@@ -233,6 +233,90 @@ export function initDataTransformApp() {
  */
 function createAppLayout(container) {
   container.innerHTML = `
+    <style>
+      /* Expandable editor styles */
+      #code-editor-container {
+        position: relative;
+        transition: all 0.3s ease;
+      }
+      
+      #code-editor-container.expanded {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90vw;
+        height: 90vh;
+        z-index: 1000;
+        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        border-radius: 8px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      #code-editor-container.expanded #editor-area {
+        flex: 1 1 auto;
+        min-height: 0;
+      }
+      
+      #code-editor-container.expanded .CodeMirror {
+        height: 100%;
+      }
+      
+      #editor-area {
+        position: relative;
+      }
+      
+      .expand-button {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: rgba(217, 119, 6, 0.7);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 5px 10px;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        z-index: 10;
+      }
+      
+      #editor-area:hover .expand-button {
+        opacity: 1;
+      }
+      
+      .minimize-button {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: rgba(217, 119, 6, 0.9);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 5px 10px;
+        cursor: pointer;
+        z-index: 10;
+      }
+      
+      /* Add an overlay behind the expanded editor */
+      .editor-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+      }
+      
+      .editor-overlay.active {
+        display: block;
+      }
+    </style>
+    
     <div class="mb-4">
       <h2 class="text-xl font-bold">Data Transform</h2>
       <p class="text-gray-600">Transform variables in the source dataset to the target schema</p>
@@ -256,7 +340,9 @@ function createAppLayout(container) {
         </div>
         
         <!-- Editor area -->
-        <div id="editor-area" class="flex-1 min-h-0 overflow-auto"></div>
+        <div id="editor-area" class="flex-1 min-h-0 overflow-auto">
+          <!-- Expand button will be added here dynamically -->
+        </div>
         
         <!-- Controls -->
         <div class="editor-controls bg-gray-100 border-t border-b border-gray-300 p-2 flex justify-end gap-2 flex-none">
@@ -277,6 +363,9 @@ function createAppLayout(container) {
       <div id="data-table-container" class="flex-1 border border-gray-200 rounded-md min-h-0 overflow-hidden ag-theme-alpine">
       </div>
     </div>
+    
+    <!-- Editor overlay for when the editor is expanded -->
+    <div id="editor-overlay" class="editor-overlay"></div>
     
     <!-- Chat interface -->
     <div id="chat-interface" class="mt-4 border border-gray-200 rounded-md h-[400px]">
@@ -430,6 +519,9 @@ function setupCodeEditor() {
           editor.refresh();
         });
 
+        // Add expand button to the editor area
+        addExpandButton();
+
         // Load additional editor add-ons
         loadScript('https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js');
         loadScript('https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js');
@@ -442,6 +534,114 @@ function setupCodeEditor() {
       });
     });
   });
+}
+
+/**
+ * Add expand button to the editor
+ */
+function addExpandButton() {
+  const editorArea = document.getElementById('editor-area');
+
+  // Create expand button
+  const expandButton = document.createElement('button');
+  expandButton.className = 'expand-button';
+  expandButton.id = 'expand-editor-button';
+  expandButton.innerText = 'Expand';
+  expandButton.title = 'Expand code editor';
+
+  // Add expand button to editor area
+  editorArea.appendChild(expandButton);
+
+  // Add click event for expand button
+  expandButton.addEventListener('click', expandEditor);
+}
+
+/**
+ * Expand the code editor
+ */
+function expandEditor() {
+  const editorContainer = document.getElementById('code-editor-container');
+  const overlay = document.getElementById('editor-overlay');
+  const editorArea = document.getElementById('editor-area');
+  const expandButton = document.getElementById('expand-editor-button');
+
+  // Add expanded class to the editor container
+  editorContainer.classList.add('expanded');
+
+  // Show the overlay
+  overlay.classList.add('active');
+
+  // Remove the expand button
+  if (expandButton) {
+    expandButton.remove();
+  }
+
+  // Create minimize button
+  const minimizeButton = document.createElement('button');
+  minimizeButton.className = 'minimize-button';
+  minimizeButton.id = 'minimize-editor-button';
+  minimizeButton.innerText = 'Minimize';
+  minimizeButton.title = 'Minimize code editor';
+
+  // Add minimize button to editor area
+  editorArea.appendChild(minimizeButton);
+
+  // Add click event for minimize button
+  minimizeButton.addEventListener('click', minimizeEditor);
+
+  // Add click event to overlay to minimize editor when clicking outside
+  overlay.addEventListener('click', minimizeEditor);
+
+  // Refresh editor to adjust to new size and ensure it fills the available space
+  setTimeout(() => {
+    if (editor) {
+      // Force CodeMirror to use full height of its container
+      const editorElement = editor.getWrapperElement();
+      if (editorElement) {
+        editorElement.style.height = '100%';
+      }
+      editor.refresh();
+    }
+  }, 300);
+}
+
+/**
+ * Minimize the code editor
+ */
+function minimizeEditor() {
+  const editorContainer = document.getElementById('code-editor-container');
+  const overlay = document.getElementById('editor-overlay');
+  const editorArea = document.getElementById('editor-area');
+  const minimizeButton = document.getElementById('minimize-editor-button');
+
+  // Remove expanded class from the editor container
+  editorContainer.classList.remove('expanded');
+
+  // Hide the overlay
+  overlay.classList.remove('active');
+
+  // Remove the minimize button
+  if (minimizeButton) {
+    minimizeButton.remove();
+  }
+
+  // Reset editor height to default
+  if (editor) {
+    const editorElement = editor.getWrapperElement();
+    if (editorElement) {
+      editorElement.style.height = '';  // Remove inline height style
+    }
+  }
+
+  // Add expand button back
+  addExpandButton();
+
+  // Refresh editor to adjust to new size
+  setTimeout(() => {
+    if (editor) {
+      editor.refresh();
+    }
+  }, 300);
 }
 
 /**
