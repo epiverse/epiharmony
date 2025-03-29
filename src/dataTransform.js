@@ -246,35 +246,35 @@ function createAppLayout(container) {
     </div>
     
     <!-- Main content area: editor and table -->
-    <div class="mt-4 flex flex-col lg:flex-row gap-4" style="min-height: 700px;">
+    <div class="mt-4 flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
       <!-- Code editor container -->
-      <div id="code-editor-container" class="flex-1 border border-gray-200 rounded-md h-[600px] lg:h-[700px] flex flex-col overflow-hidden">
+      <div id="code-editor-container" class="flex flex-col flex-1 min-h-0 border border-gray-200 rounded-md overflow-hidden">
         <!-- Language selector -->
-        <div class="language-selector bg-gray-100 border-b border-gray-300 p-2 flex">
+        <div class="language-selector bg-gray-100 border-b border-gray-300 p-2 flex flex-none">
           <button id="js-button" class="language-button active bg-amber-800 text-white px-3 py-1 rounded mr-2 text-sm font-medium">JavaScript</button>
           <button id="r-button" class="language-button bg-gray-200 text-gray-700 px-3 py-1 rounded mr-2 text-sm font-medium">R</button>
         </div>
         
         <!-- Editor area -->
-        <div id="editor-area" class="flex-grow"></div>
+        <div id="editor-area" class="flex-1 min-h-0 overflow-auto"></div>
         
         <!-- Controls -->
-        <div class="editor-controls bg-gray-100 border-t border-b border-gray-300 p-2 flex justify-end gap-2">
+        <div class="editor-controls bg-gray-100 border-t border-b border-gray-300 p-2 flex justify-end gap-2 flex-none">
           <button id="undo-button" class="bg-gray-600 text-white px-4 py-1 rounded hover:bg-gray-700 text-sm font-medium opacity-50" disabled>Undo</button>
           <button id="transform-button" class="bg-amber-600 text-white px-4 py-1 rounded hover:bg-amber-700 text-sm font-medium">Transform</button>
         </div>
         
         <!-- Output area (fixed height now) -->
-        <div class="output-container flex-shrink-0 h-[150px] flex flex-col">
-          <div class="output-header bg-gray-100 border-b border-gray-300 p-2 font-medium text-sm">Output</div>
-          <div class="output-area bg-gray-50 p-3 flex-grow overflow-auto">
+        <div class="output-container flex-none bg-gray-100 border-t border-gray-300 p-2">
+          <div class="output-header font-medium text-sm mb-1">Output</div>
+          <div class="output-area bg-gray-50 p-2 rounded max-h-44 overflow-auto">
             <pre id="output-content" class="font-mono text-sm whitespace-pre-wrap"></pre>
           </div>
         </div>
       </div>
       
       <!-- Data table container -->
-      <div id="data-table-container" class="flex-1 border border-gray-200 rounded-md h-[600px] lg:h-[700px] overflow-hidden ag-theme-alpine">
+      <div id="data-table-container" class="flex-1 border border-gray-200 rounded-md min-h-0 overflow-hidden ag-theme-alpine">
       </div>
     </div>
     
@@ -758,7 +758,7 @@ function executeTransformation(code, outputElement) {
     // Check if the transformation can be applied by examining the source fields
     const canApplyTransform = checkTransformationApplicability(currentMappingKey, currentData);
     if (!canApplyTransform) {
-      outputElement.textContent = "Notice: Transformation cannot be applied because the source fields are not present in the current data.       outputElement.textContent = \"Notice: Transformation cannot be applied because the source fields are not present in the current data. This could mean that the transformation has already been applied and the code has since not undergone any changes.";
+      outputElement.textContent = "Notice: Transformation cannot be applied because the source fields are not present in the current data. This could mean that the transformation has already been applied and the code has since not undergone any changes.";
       console.log("Transformation not applicable - source fields not found");
       return;
     }
