@@ -347,7 +347,7 @@ function createAppLayout(container) {
         <!-- Controls -->
         <div class="editor-controls bg-gray-100 border-t border-b border-gray-300 p-2 flex justify-end gap-2 flex-none">
           <button id="undo-button" class="bg-gray-600 text-white px-4 py-1 rounded hover:bg-gray-700 text-sm font-medium opacity-50" disabled>Undo</button>
-          <button id="transform-button" class="bg-amber-600 text-white px-4 py-1 rounded hover:bg-amber-700 text-sm font-medium">Transform</button>
+          <button id="transform-button" class="bg-amber-800 text-white px-4 py-1 rounded hover:bg-amber-700 text-sm font-medium">Transform</button>
         </div>
         
         <!-- Output area (fixed height now) -->
@@ -546,8 +546,15 @@ function addExpandButton() {
   const expandButton = document.createElement('button');
   expandButton.className = 'expand-button';
   expandButton.id = 'expand-editor-button';
-  expandButton.innerText = 'Expand';
   expandButton.title = 'Expand code editor';
+  expandButton.innerHTML = `
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="4 9 4 4 9 4"></polyline>
+      <polyline points="15 4 20 4 20 9"></polyline>
+      <polyline points="20 15 20 20 15 20"></polyline>
+      <polyline points="4 15 4 20 9 20"></polyline>
+    </svg>
+  `;
 
   // Add expand button to editor area
   editorArea.appendChild(expandButton);
@@ -580,8 +587,15 @@ function expandEditor() {
   const minimizeButton = document.createElement('button');
   minimizeButton.className = 'minimize-button';
   minimizeButton.id = 'minimize-editor-button';
-  minimizeButton.innerText = 'Minimize';
   minimizeButton.title = 'Minimize code editor';
+  minimizeButton.innerHTML = `
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9 4 9 9 4 9"></polyline>
+      <polyline points="15 4 15 9 20 9"></polyline>
+      <polyline points="15 20 15 15 20 15"></polyline>
+      <polyline points="4 15 9 15 9 20"></polyline>
+    </svg>
+  `;
 
   // Add minimize button to editor area
   editorArea.appendChild(minimizeButton);
