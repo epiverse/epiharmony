@@ -839,10 +839,25 @@ function deriveColumnDefs(data) {
     Object.keys(item).forEach(key => allKeys.add(key));
   });
 
-  // Convert to array and sort alphabetically for consistent display
-  const headers = Array.from(allKeys).sort();
+  // Get the keys in the order they appear in the first object
+  // This will be our starting point for ordering
+  let orderedKeys = [];
+  if (data.length > 0) {
+    // Start with keys from the first object
+    orderedKeys = Object.keys(data[0]);
 
-  return headers.map(header => {
+    // Add any additional keys not in the first object
+    Array.from(allKeys).forEach(key => {
+      if (!orderedKeys.includes(key)) {
+        orderedKeys.push(key);
+      }
+    });
+  } else {
+    // Fallback to alphabetical if no data
+    orderedKeys = Array.from(allKeys).sort();
+  }
+
+  return orderedKeys.map(header => {
     const colDef = {
       field: header,
       headerName: header
@@ -967,6 +982,30 @@ function executeTransformation(code, outputElement) {
     previousData = JSON.parse(JSON.stringify(currentData));
     console.log("Saved previous state with", previousData.length, "rows");
 
+    // Keep track of column order before transformation
+    const originalColumnOrder = previousData.length > 0 ? Object.keys(previousData[0]) : [];
+
+    // Track which columns are being transformed based on the mapping
+    let sourceColumns = [];
+    let targetColumns = [];
+
+    if (mapping[currentMappingKey]) {
+      // Extract source and target column names from the mapping
+      if (currentMappingKey.includes('{')) {
+        // Handle multiple source columns case
+        const match = currentMappingKey.match(/{\s*([^}]+)\s*}/);
+        if (match) {
+          sourceColumns = match[1].split(',').map(col => col.trim());
+        }
+      } else {
+        // Handle single source column case
+        sourceColumns = [currentMappingKey.split(' → ')[0].trim()];
+      }
+
+      // Get target column(s)
+      targetColumns = [currentMappingKey.split(' → ')[1].trim()];
+    }
+
     // Create a sandbox environment for code execution
     const sandbox = createSandbox();
 
@@ -1048,6 +1087,42 @@ function executeTransformation(code, outputElement) {
       outputElement.textContent = 'Error: Transformation did not return valid data';
       console.error("Invalid transformation result");
       return;
+    }
+
+    // Now reorder the columns in the result to match the original order
+    // with the transformed columns in the position of the first source column
+    if (result.length > 0 && originalColumnOrder.length > 0) {
+      const firstSourceColumnIndex = sourceColumns.length > 0 ?
+        originalColumnOrder.indexOf(sourceColumns[0]) : -1;
+
+      if (firstSourceColumnIndex >= 0) {
+        // Create a new column order
+        let newColumnOrder = [...originalColumnOrder];
+
+        // Remove source columns
+        sourceColumns.forEach(col => {
+          const index = newColumnOrder.indexOf(col);
+          if (index >= 0) {
+            newColumnOrder.splice(index, 1);
+          }
+        });
+
+        // Insert target columns at the position of the first source column
+        if (targetColumns.length > 0) {
+          newColumnOrder.splice(firstSourceColumnIndex, 0, ...targetColumns);
+        }
+
+        // Apply the new column order to each row
+        result = result.map(row => {
+          const orderedRow = {};
+          newColumnOrder.forEach(key => {
+            if (key in row) {
+              orderedRow[key] = row[key];
+            }
+          });
+          return orderedRow;
+        });
+      }
     }
 
     // Update current data state
