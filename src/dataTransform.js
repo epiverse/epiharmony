@@ -335,8 +335,8 @@ function createAppLayout(container) {
       <div id="code-editor-container" class="flex flex-col flex-1 min-h-0 border border-gray-200 rounded-md overflow-hidden">
         <!-- Language selector -->
         <div class="language-selector bg-gray-100 border-b border-gray-300 p-2 flex flex-none">
-          <button id="js-button" class="language-button active bg-amber-800 text-white px-3 py-1 rounded mr-2 text-sm font-medium">JavaScript</button>
-          <button id="r-button" class="language-button bg-gray-200 text-gray-700 px-3 py-1 rounded mr-2 text-sm font-medium">R</button>
+          <button id="js-button" class="language-button active bg-amber-800 text-white px-3 py-1 rounded mr-2 text-sm font-medium cursor-pointer">JavaScript</button>
+          <button id="r-button" class="language-button bg-gray-200 text-gray-700 px-3 py-1 rounded mr-2 text-sm font-medium cursor-pointer">R</button>
         </div>
         
         <!-- Editor area -->
@@ -346,8 +346,8 @@ function createAppLayout(container) {
         
         <!-- Controls -->
         <div class="editor-controls bg-gray-100 border-t border-b border-gray-300 p-2 flex justify-end gap-2 flex-none">
-          <button id="undo-button" class="bg-gray-600 text-white px-4 py-1 rounded hover:bg-gray-700 text-sm font-medium opacity-50" disabled>Undo</button>
-          <button id="transform-button" class="bg-amber-800 text-white px-4 py-1 rounded hover:bg-amber-700 text-sm font-medium">Transform</button>
+          <button id="undo-button" class="bg-gray-600 text-white px-4 py-1 rounded hover:bg-gray-700 text-sm font-medium opacity-50 cursor-pointer" disabled>Undo</button>
+          <button id="transform-button" class="bg-amber-800 text-white px-4 py-1 rounded hover:bg-amber-700 text-sm font-medium cursor-pointer">Transform</button>
         </div>
         
         <!-- Output area (fixed height now) -->
@@ -874,7 +874,8 @@ function deriveColumnDefs(data) {
   return orderedKeys.map(header => {
     const colDef = {
       field: header,
-      headerName: header
+      headerName: header,
+      floatingFilter: true
     };
 
     // Determine the column type based on the first non-null value found

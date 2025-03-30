@@ -468,7 +468,8 @@ function deriveColumnDefs(data, schema) {
     return headers.map(header => {
         const colDef = {
             field: header,
-            headerName: header
+            headerName: header,
+            floatingFilter: true
         };
 
         // Add schema-based information if available
