@@ -2056,6 +2056,7 @@ function addCustomStyles() {
     const style = document.createElement('style');
     style.id = 'vm-grid-styles';
     style.textContent = `
+    /* Existing styles */
     .ag-theme-alpine {
       --ag-foreground-color: rgb(55, 65, 81);
       --ag-header-foreground-color: rgb(55, 65, 81);
@@ -2084,6 +2085,23 @@ function addCustomStyles() {
     /* Custom style for mapped cells */
     .ag-theme-alpine .mapped-cell {
       background-color: rgba(5, 150, 105, 0.1);
+    }
+    
+    /* Value Coding column specific styles */
+    .value-coding-content {
+      line-height: 1.2;
+    }
+    
+    .value-coding-content .enum-item {
+      margin-bottom: 2px;
+      padding-bottom: 2px;
+      border-bottom: 1px dashed rgba(0,0,0,0.05);
+    }
+    
+    /* Last enum item shouldn't have a border or margin */
+    .value-coding-content .enum-item:last-child {
+      margin-bottom: 0;
+      border-bottom: none;
     }
     
     /* Tooltip styling */
@@ -2268,9 +2286,9 @@ function initAgGrid(type, schema) {
 
         // Configure the checkbox column with proper spacing
         selectionColumnDef: {
-            width: 80,
-            minWidth: 80,
-            maxWidth: 80,
+            width: 100,
+            minWidth: 100,
+            maxWidth: 100,
             pinned: 'left',
             lockPosition: true,
             resizable: false,
@@ -2502,8 +2520,12 @@ function getSchemaColumnDefs(type) {
             autoHeight: true,
             cellRenderer: params => {
                 if (!params.value) return '';
-                // Create a div with controlled line spacing
-                return `<div class="value-coding-content">${params.value.replace(/\n/g, '<br>')}</div>`;
+
+                const items = params.value.split('\n').map(item =>
+                    `<div class="enum-item">${item}</div>`
+                ).join('');
+
+                return `<div class="value-coding-content">${items}</div>`;
             },
             tooltipValueGetter: params => {
                 return params.value;
