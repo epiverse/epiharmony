@@ -8,7 +8,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor': ['@google/generative-ai', 'ag-grid-community', 'ajv'],
+          'vendor': ['@google/genai', 'ag-grid-community', 'ajv'],
           'editor': ['codemirror', '@codemirror/lang-javascript', '@codemirror/view', '@codemirror/state'],
           'data': ['idb', '@babycommando/entity-db'],
           'webr': ['webr']
