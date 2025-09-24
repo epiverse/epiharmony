@@ -1,5 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="150 80 700 880" class="text-gray-400 group-hover:text-gray-500">
-  <path fill="currentColor" fill-rule="evenodd" stroke="currentColor" stroke-width="20" d="
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" 
+     viewBox="150 80 700 880" 
+     class="logo-icon text-gray-500 group-hover:text-gray-600">
+   <path fill="currentColor" fill-rule="evenodd" stroke="currentColor" stroke-width="20" d="
     M709.646851,860.683350 
     C684.220459,877.457886 657.480225,890.620178 628.907104,900.258606 
     C605.175659,908.263855 580.956787,913.965332 556.172791,917.019165 

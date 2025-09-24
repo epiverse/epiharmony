@@ -1,21 +1,48 @@
 {
   "name": "epiharmony",
-  "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "LLM-assisted epidemiological data harmonization web application",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && gh-pages -d dist"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/epiverse/epiharmony.git"
+  },
+  "keywords": [
+    "epidemiology",
+    "data-harmonization",
+    "LLM",
+    "AI",
+    "data-transformation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/epiverse/epiharmony/issues"
+  },
+  "homepage": "https://github.com/epiverse/epiharmony#readme",
   "devDependencies": {
-    "vite": "^6.2.0"
+    "autoprefixer": "^10.4.20",
+    "gh-pages": "^6.2.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "vite": "^7.1.7"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.0.9",
-    "tailwindcss": "^4.0.9",
-    "idb": "^8.0.2",
-    "openai": "^4.86.1",
-    "ajv": "^8.17.1"
+    "@babycommando/entity-db": "^1.0.11",
+    "@google/generative-ai": "^0.24.1",
+    "ag-grid-community": "^34.2.0",
+    "ajv": "^8.17.1",
+    "codemirror": "^6.0.2",
+    "@codemirror/lang-javascript": "^6.2.2",
+    "@codemirror/view": "^6.34.1",
+    "@codemirror/state": "^6.4.1",
+    "idb": "^8.0.3",
+    "webr": "^0.5.5"
   }
 }

@@ -1,16 +1,178 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="assets/logo/epiharmony-logo-bg.svg" />
-    <link href="/style.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@33.2.1/dist/ag-grid-community.min.js"></script>
-    <title>epiHarmony - Data Harmonization</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/app.js"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>epiHarmony - LLM-Assisted Epidemiological Data Harmonization</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/logo/epiharmony-logo-bg.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <header id="app-header" class="bg-amber-900 text-white shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo and App Name -->
+                <div class="flex items-center space-x-3">
+                    <img src="/assets/logo/epiharmony-logo.svg" alt="epiHarmony Logo" class="w-10 h-10">
+                    <h1 class="text-2xl font-dancing font-bold">epiHarmony</h1>
+                </div>
+
+                <!-- GitHub Link -->
+                <a href="https://github.com/epiverse/epiharmony"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+                    <img src="/assets/logo/github-logo.svg" alt="GitHub" class="w-6 h-6">
+                    <span class="hidden sm:inline">View on GitHub</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Data Panel (Collapsible) -->
+    <section id="data-panel" class="bg-white border-b border-gray-200 shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <!-- Toggle Button -->
+            <button id="toggle-panel" class="mb-4 text-amber-600 hover:text-amber-700 font-medium flex items-center space-x-2">
+                <svg id="toggle-icon" class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+                <span id="toggle-text">Hide Configuration Panel</span>
+            </button>
+
+            <!-- Panel Content -->
+            <div id="panel-content" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Blueprint File Section -->
+                <div class="panel">
+                    <h3 class="text-lg font-semibold mb-3">Blueprint File</h3>
+                    <div class="space-y-2">
+                        <button class="btn-primary w-full">Create New</button>
+                        <button class="btn-secondary w-full">Upload File</button>
+                        <div class="flex space-x-2">
+                            <input type="url" placeholder="Load from URL..." class="input-field flex-1">
+                            <button class="btn-secondary">Load</button>
+                        </div>
+                        <button class="btn-danger w-full mt-3">Clear Project</button>
+                    </div>
+                </div>
+
+                <!-- Schema Configuration -->
+                <div class="panel">
+                    <h3 class="text-lg font-semibold mb-3">Schema Configuration</h3>
+
+                    <!-- Source Schema -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Source Schema URL(s)</label>
+                        <div id="source-schema-inputs" class="space-y-2">
+                            <input type="url" placeholder="Enter source schema URL..." class="input-field">
+                        </div>
+                        <button class="text-amber-600 text-sm mt-2">+ Add another URL</button>
+                        <div id="source-schema-status" class="mt-2"></div>
+                    </div>
+
+                    <!-- Target Schema -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Target Schema URL(s)</label>
+                        <div id="target-schema-inputs" class="space-y-2">
+                            <input type="url" placeholder="Enter target schema URL..." class="input-field">
+                        </div>
+                        <button class="text-amber-600 text-sm mt-2">+ Add another URL</button>
+                        <div id="target-schema-status" class="mt-2"></div>
+                    </div>
+                </div>
+
+                <!-- Data & AI Configuration -->
+                <div class="panel">
+                    <h3 class="text-lg font-semibold mb-3">Data & AI Configuration</h3>
+
+                    <!-- Source Data -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Source Data (Optional)</label>
+                        <input type="file" accept=".csv,.tsv,.json" class="input-field">
+                        <div id="data-status" class="mt-2"></div>
+                    </div>
+
+                    <!-- AI Configuration -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Gemini API Key</label>
+                        <input type="password" placeholder="Enter your Gemini API key..." class="input-field mb-2">
+                        <div id="api-key-status" class="mb-3"></div>
+
+                        <label class="block text-sm font-medium mb-2">Embedding Model</label>
+                        <select class="input-field mb-3">
+                            <option value="text-embedding-004">text-embedding-004</option>
+                        </select>
+
+                        <label class="block text-sm font-medium mb-2">Chat Model</label>
+                        <select class="input-field mb-3">
+                            <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                            <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                        </select>
+
+                        <button class="btn-secondary w-full">Forget API Key</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Workspace -->
+    <main id="workspace" class="container mx-auto px-4 py-6">
+        <!-- Tab Navigation -->
+        <div class="flex border-b border-gray-200 mb-6">
+            <button class="tab-button tab-active px-4 py-3 flex items-center space-x-2" data-tab="vocabulary-mapper">
+                <img src="/assets/logo/vocabulary-mapper-logo.svg" alt="" class="w-5 h-5">
+                <span>Vocabulary Mapper</span>
+            </button>
+            <button class="tab-button tab-inactive px-4 py-3 flex items-center space-x-2" data-tab="data-transform">
+                <img src="/assets/logo/data-transform-logo.svg" alt="" class="w-5 h-5">
+                <span>Data Transform</span>
+            </button>
+            <button class="tab-button tab-inactive px-4 py-3 flex items-center space-x-2" data-tab="quality-control">
+                <img src="/assets/logo/quality-control-logo.svg" alt="" class="w-5 h-5">
+                <span>Quality Control</span>
+            </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="tab-content">
+            <!-- Vocabulary Mapper Tab -->
+            <div id="vocabulary-mapper-tab" class="tab-panel">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-semibold mb-4">Vocabulary Mapper</h2>
+                    <p class="text-gray-600">Map concepts between source and target schemas with AI assistance.</p>
+                    <!-- Content will be dynamically loaded -->
+                </div>
+            </div>
+
+            <!-- Data Transform Tab -->
+            <div id="data-transform-tab" class="tab-panel hidden">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-semibold mb-4">Data Transform</h2>
+                    <p class="text-gray-600">Generate and apply transformation code to harmonize your data.</p>
+                    <!-- Content will be dynamically loaded -->
+                </div>
+            </div>
+
+            <!-- Quality Control Tab -->
+            <div id="quality-control-tab" class="tab-panel hidden">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-semibold mb-4">Quality Control</h2>
+                    <p class="text-gray-600">Validate transformed data against the target schema.</p>
+                    <!-- Content will be dynamically loaded -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Floating Chat Button -->
+    <button id="floating-chat" class="fixed bottom-6 right-6 bg-amber-500 text-white rounded-full p-4 shadow-lg hover:bg-amber-600 transition-colors">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+        </svg>
+    </button>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
 </html>

@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 980 980" class="text-gray-400 group-hover:text-gray-500">
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" 
+     viewBox="0 0 980 980" 
+     class="logo-icon text-gray-500 group-hover:text-gray-600">
   <path fill="currentColor" d="
     M314.657471,693.968262 
     C313.327423,681.595215 315.493103,669.651306 313.796173,657.649292 
