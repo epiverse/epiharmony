@@ -10,6 +10,8 @@ export class SchemaViewer {
     this.properties = [];
     this.filteredProperties = [];
     this.searchTerm = '';
+    this.schema = null;
+    this.processor = null;
   }
 
   setSchema(schema, processor = null) {
@@ -19,9 +21,17 @@ export class SchemaViewer {
       return;
     }
 
+    this.schema = schema;
+    this.processor = processor;
+
     // Use processor if available for better property extraction
     if (processor && processor.resolvedSchema) {
-      this.properties = processor.extractProperties(processor.resolvedSchema);
+      // Check for allOf to extract categories
+      if (processor.mainSchema?.items?.allOf) {
+        this.properties = this.extractPropertiesWithCategories(processor.resolvedSchema, processor);
+      } else {
+        this.properties = processor.extractProperties(processor.resolvedSchema);
+      }
     } else {
       // Fallback to direct extraction
       this.properties = this.extractProperties(schema);
@@ -40,6 +50,59 @@ export class SchemaViewer {
     }
 
     if (schemaToProcess.properties) {
+      for (const [name, propSchema] of Object.entries(schemaToProcess.properties)) {
+        properties.push({
+          name,
+          schema: propSchema,
+          required: schemaToProcess.required?.includes(name) || false,
+          description: propSchema.description || '',
+          type: propSchema.type || 'any',
+          enum: propSchema.enum || null,
+          enumDescriptions: propSchema.enumDescriptions || null
+        });
+      }
+    }
+
+    return properties;
+  }
+
+  extractPropertiesWithCategories(schema, processor) {
+    const properties = [];
+    let schemaToProcess = schema;
+
+    if (schema.type === 'array' && schema.items) {
+      schemaToProcess = schema.items;
+    }
+
+    // Check if main schema has allOf
+    if (processor.mainSchema?.items?.allOf) {
+      processor.mainSchema.items.allOf.forEach(subSchema => {
+        let categorySchema = subSchema;
+
+        // Resolve $ref if present
+        if (subSchema.$ref && processor) {
+          categorySchema = processor.resolveRef(subSchema.$ref);
+        }
+
+        if (categorySchema && categorySchema.properties) {
+          const categoryName = categorySchema.title || categorySchema.description || null;
+
+          for (const [name, propSchema] of Object.entries(categorySchema.properties)) {
+            properties.push({
+              name,
+              category: categoryName,
+              schema: propSchema,
+              required: categorySchema.required?.includes(name) || false,
+              description: propSchema.description || '',
+              type: propSchema.type || 'any',
+              enum: propSchema.enum || null,
+              enumDescriptions: propSchema.enumDescriptions || null
+            });
+          }
+        }
+      });
+    } else if (schemaToProcess.properties) {
+      // Regular properties without categories
       for (const [name, propSchema] of Object.entries(schemaToProcess.properties)) {
         properties.push({
           name,
@@ -144,16 +207,13 @@ export class SchemaViewer {
     let html = `
       <div class="relative inline-block">
         <button
-          onclick="(function() {
-            const el = document.getElementById('${enumId}');
-            el.classList.toggle('hidden');
-            event.stopPropagation();
-          })()"
-          class="text-amber-600 hover:text-amber-700 underline text-sm"
+          data-dropdown-id="${enumId}"
+          data-dropdown-type="enum"
+          class="text-amber-600 hover:text-amber-700 underline text-sm dropdown-trigger"
         >
           ${property.enum.length} values ▼
         </button>
-        <div id="${enumId}" class="hidden absolute z-50 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[250px] max-w-[400px] max-h-[300px] overflow-y-auto">
+        <div id="${enumId}" class="hidden fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl min-w-[250px] max-w-[400px] max-h-[300px] overflow-y-auto" style="margin-top: 2px;">
     `;
 
     property.enum.forEach((value, index) => {
@@ -168,6 +228,39 @@ export class SchemaViewer {
 
     html += '</div></div>';
     return html;
+  }
+
+  formatAdditional(schema) {
+    const exclude = ['type', 'format', 'description', 'enum', 'enumDescriptions',
+                   'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum',
+                   'minLength', 'maxLength', 'pattern', 'const', 'multipleOf',
+                   'required', 'title', '$schema', '$id'];
+
+    const additional = {};
+    for (const [key, value] of Object.entries(schema)) {
+      if (!exclude.includes(key)) {
+        additional[key] = value;
+      }
+    }
+
+    if (Object.keys(additional).length === 0) return '-';
+
+    const addId = 'add_' + Math.random().toString(36).substr(2, 9);
+    return `
+      <div class="relative inline-block">
+        <button
+          data-dropdown-id="${addId}"
+          data-dropdown-type="additional"
+          class="text-amber-600 hover:text-amber-700 underline text-sm dropdown-trigger">
+          View details
+        </button>
+        <div id="${addId}" class="hidden fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4 min-w-[200px] max-w-[400px] max-h-[300px] overflow-y-auto" style="margin-top: 2px;">
+          ${Object.entries(additional).map(([k, v]) =>
+            `<div class="mb-2"><strong class="text-gray-700">${k}:</strong> <span class="text-gray-600 text-xs">${typeof v === 'object' ? JSON.stringify(v, null, 2) : v}</span></div>`
+          ).join('')}
+        </div>
+      </div>
+    `;
   }
 
   render() {
@@ -187,8 +280,21 @@ export class SchemaViewer {
 
     let html = '<div class="schema-viewer">';
 
-    // Add title if provided
-    if (this.options.title) {
+    // Add schema title and description if available
+    const schemaTitle = this.schema?.title || this.processor?.mainSchema?.title;
+    const schemaDesc = this.schema?.description || this.processor?.mainSchema?.description;
+
+    if (schemaTitle || schemaDesc) {
+      html += `
+        <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          ${schemaTitle ? `<h3 class="font-semibold text-lg mb-2">${schemaTitle}</h3>` : ''}
+          ${schemaDesc ? `<p class="text-sm text-gray-600">${schemaDesc}</p>` : ''}
+        </div>
+      `;
+    }
+
+    // Add custom title if provided
+    if (this.options.title && this.options.title !== schemaTitle) {
       html += `<h3 class="font-semibold text-lg mb-3">${this.options.title}</h3>`;
     }
 
@@ -226,13 +332,29 @@ export class SchemaViewer {
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valid Values</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Required</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Constraints</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Additional Info</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
     `;
 
-    // Add rows
+    // Add rows (with category headers if available)
+    let lastCategory = null;
+    const hasCategories = this.filteredProperties.some(p => p.category);
+
     for (const property of this.filteredProperties) {
+      // Add category row if changed
+      if (hasCategories && property.category && property.category !== lastCategory) {
+        html += `
+          <tr class="bg-amber-50">
+            <td colspan="8" class="px-4 py-2 font-semibold text-amber-900">
+              ${property.category}
+            </td>
+          </tr>
+        `;
+        lastCategory = property.category;
+      }
+
       const constraints = this.formatConstraints(property.schema);
 
       html += `
@@ -261,6 +383,9 @@ export class SchemaViewer {
               `<span class="inline-block mr-2 mb-1 px-2 py-1 bg-yellow-50 text-yellow-800 text-xs rounded">${c}</span>`
             ).join(' ')}
           </td>
+          <td class="px-4 py-3 text-sm text-gray-700">
+            ${this.formatAdditional(property.schema)}
+          </td>
         </tr>
       `;
     }
@@ -285,14 +410,8 @@ export class SchemaViewer {
       }
     }
 
-    // Set up enum dropdown close on outside click
-    document.addEventListener('click', (e) => {
-      if (!e.target.matches('button')) {
-        document.querySelectorAll('[id^="enum_"]').forEach(el => {
-          el.classList.add('hidden');
-        });
-      }
-    });
+    // Set up dropdown positioning and close on outside click
+    this.setupDropdownHandlers();
   }
 
   search(term) {
@@ -372,6 +491,53 @@ export class SchemaViewer {
   clearHighlights() {
     this.container.querySelectorAll('tr').forEach(row => {
       row.classList.remove('bg-amber-50', 'border-l-4', 'border-amber-500');
+    });
+  }
+
+  setupDropdownHandlers() {
+    // Handle dropdown button clicks
+    this.container.addEventListener('click', (e) => {
+      const button = e.target.closest('.dropdown-trigger');
+      if (button) {
+        e.stopPropagation();
+        const dropdownId = button.getAttribute('data-dropdown-id');
+        if (dropdownId) {
+          const dropdown = document.getElementById(dropdownId);
+          if (dropdown) {
+            // Toggle visibility
+            dropdown.classList.toggle('hidden');
+
+            // Position dropdown if visible
+            if (!dropdown.classList.contains('hidden')) {
+              const buttonRect = button.getBoundingClientRect();
+              const dropdownHeight = dropdown.offsetHeight;
+              const viewportHeight = window.innerHeight;
+
+              // Position dropdown
+              dropdown.style.position = 'fixed';
+              dropdown.style.left = buttonRect.left + 'px';
+
+              // Check if dropdown would go off bottom of screen
+              if (buttonRect.bottom + dropdownHeight > viewportHeight && buttonRect.top - dropdownHeight > 0) {
+                // Show above button
+                dropdown.style.top = (buttonRect.top - dropdownHeight - 5) + 'px';
+              } else {
+                // Show below button
+                dropdown.style.top = (buttonRect.bottom + 5) + 'px';
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.dropdown-trigger')) {
+        document.querySelectorAll('[id^="enum_"], [id^="add_"]').forEach(el => {
+          el.classList.add('hidden');
+        });
+      }
     });
   }
 }

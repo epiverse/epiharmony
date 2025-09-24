@@ -182,13 +182,37 @@ export class DataPanel {
 
     if (addButton) {
       addButton.addEventListener('click', () => {
-        const input = document.createElement('input');
-        input.type = 'url';
-        input.placeholder = `Enter ${type} schema URL...`;
-        input.className = 'input-field';
-        container.appendChild(input);
+        this.addSchemaUrlInput(type, container);
       });
     }
+  }
+
+  addSchemaUrlInput(type, container, value = '', isFirst = false) {
+    const inputWrapper = document.createElement('div');
+    inputWrapper.className = 'flex items-center gap-2 mb-2';
+
+    const input = document.createElement('input');
+    input.type = 'url';
+    input.placeholder = `Enter ${type} schema URL...`;
+    input.className = 'input-field flex-grow';
+    input.value = value;
+
+    inputWrapper.appendChild(input);
+
+    // Only add remove button if not the first input
+    if (!isFirst) {
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'w-6 h-6 rounded-full bg-red-500 hover:bg-red-600 font-bold text-white flex items-center justify-center text-sm transition-colors';
+      removeBtn.innerHTML = '<span class="leading-none">-</span>';
+      removeBtn.title = 'Remove this URL';
+      removeBtn.addEventListener('click', () => {
+        inputWrapper.remove();
+      });
+      inputWrapper.appendChild(removeBtn);
+    }
+
+    container.appendChild(inputWrapper);
+    return input;
   }
 
   addLoadSchemasButtons() {
@@ -218,22 +242,8 @@ export class DataPanel {
         clearBtn.style.display = 'none'; // Initially hidden
         clearBtn.addEventListener('click', () => this.clearSchemas(type));
 
-        // Create main schema selector (initially hidden)
-        const selectorDiv = document.createElement('div');
-        selectorDiv.id = `${type}-main-schema-selector`;
-        selectorDiv.className = 'hidden flex-shrink-0';
-        selectorDiv.innerHTML = `
-          <div class="flex items-center gap-2">
-            <label class="text-sm text-gray-600 whitespace-nowrap">Main:</label>
-            <select id="${type}-main-schema-select" class="text-sm border rounded px-2 py-1 max-w-[150px]">
-              <option>Loading...</option>
-            </select>
-          </div>
-        `;
-
         btnContainer.appendChild(loadBtn);
         btnContainer.appendChild(clearBtn);
-        btnContainer.appendChild(selectorDiv);
 
         // Insert after status div
         statusDiv.parentNode.insertBefore(btnContainer, statusDiv.nextSibling);
@@ -245,11 +255,10 @@ export class DataPanel {
     const container = document.getElementById(`${type}-schema-inputs`);
     const statusDiv = document.getElementById(`${type}-schema-status`);
     const loadBtn = document.getElementById(`load-${type}-schemas-btn`);
-    const selectorDiv = document.getElementById(`${type}-main-schema-selector`);
 
     if (!container || !statusDiv) return;
 
-    // Get all URL inputs
+    // Get all URL inputs from the wrapper divs
     const inputs = container.querySelectorAll('input[type="url"]');
     const urls = Array.from(inputs)
       .map(input => input.value.trim())
@@ -313,9 +322,13 @@ export class DataPanel {
       });
 
       if (urls.length > 1 && validSchemas.length > 1) {
-        this.showMainSchemaSelector(type, processor, selectorDiv);
+        this.showMainSchemaSelector(type, processor, statusDiv);
       } else {
-        selectorDiv.classList.add('hidden');
+        // Remove any existing selector
+        const existingSelector = document.getElementById(`${type}-main-schema-selector`);
+        if (existingSelector) {
+          existingSelector.remove();
+        }
       }
 
       // Show any load errors
@@ -343,7 +356,32 @@ export class DataPanel {
     }
   }
 
-  showMainSchemaSelector(type, processor, selectorDiv) {
+  showMainSchemaSelector(type, processor, statusDiv) {
+    // Remove any existing selector first
+    const existingSelector = document.getElementById(`${type}-main-schema-selector`);
+    if (existingSelector) {
+      existingSelector.remove();
+    }
+
+    // Create main schema selector above buttons but below message
+    const selectorDiv = document.createElement('div');
+    selectorDiv.id = `${type}-main-schema-selector`;
+    selectorDiv.className = 'mt-3 mb-2 px-1';
+    selectorDiv.innerHTML = `
+      <div class="flex items-center gap-2">
+        <label class="text-sm text-gray-600 whitespace-nowrap flex-shrink-0">Main schema:</label>
+        <select id="${type}-main-schema-select" class="text-sm border rounded px-2 py-1 w-full max-w-[200px]">
+          <option>Loading...</option>
+        </select>
+      </div>
+    `;
+
+    // Insert after status div but before buttons
+    const btnContainer = statusDiv.nextElementSibling;
+    if (btnContainer) {
+      statusDiv.parentNode.insertBefore(selectorDiv, btnContainer);
+    }
+
     const select = document.getElementById(`${type}-main-schema-select`);
     if (!select) return;
 
@@ -382,7 +420,7 @@ export class DataPanel {
       }
     });
 
-    selectorDiv.classList.remove('hidden');
+    // Selector is already visible
   }
 
   showSchemaStatus(statusDiv, message, type = 'info') {
@@ -591,8 +629,19 @@ export class DataPanel {
   async loadSavedSchemas(type) {
     const stored = await this.storageManager.getSchemas(type);
     if (stored && stored.resolvedSchema) {
+      const container = document.getElementById(`${type}-schema-inputs`);
       const statusDiv = document.getElementById(`${type}-schema-status`);
-      const selectorDiv = document.getElementById(`${type}-main-schema-selector`);
+
+      // Restore all URLs to the input fields
+      if (stored.urls && stored.urls.length > 0 && container) {
+        // Clear container and re-add all URLs
+        container.innerHTML = '';
+
+        // Add input for each URL (first one without remove button)
+        stored.urls.forEach((url, index) => {
+          this.addSchemaUrlInput(type, container, url, index === 0);
+        });
+      }
 
       // Recreate processor from stored data
       const processor = new SchemaProcessor();
@@ -619,8 +668,14 @@ export class DataPanel {
       }
 
       // Show selector if multiple URLs with multiple schemas
-      if (stored.urls && stored.urls.length > 1 && stored.allSchemas && stored.allSchemas.length > 1 && selectorDiv) {
-        this.showMainSchemaSelector(type, processor, selectorDiv);
+      if (stored.urls && stored.urls.length > 1 && stored.allSchemas && stored.allSchemas.length > 1) {
+        const validSchemas = stored.allSchemas.filter(schema => {
+          const validation = validateTabularSchema(schema);
+          return validation.valid;
+        });
+        if (validSchemas.length > 1) {
+          this.showMainSchemaSelector(type, processor, statusDiv);
+        }
       }
 
       // Notify other components
@@ -692,29 +747,27 @@ export class DataPanel {
       // Clear UI elements
       const statusDiv = document.getElementById(`${type}-schema-status`);
       const selectorDiv = document.getElementById(`${type}-main-schema-selector`);
-      const clearBtn = document.getElementById(`${type}-clear-btn`);
+      const clearBtn = document.getElementById(`clear-${type}-schemas-btn`);
+      const container = document.getElementById(`${type}-schema-inputs`);
 
       if (statusDiv) {
         statusDiv.innerHTML = '';
-        statusDiv.style.display = 'none';
       }
 
       if (selectorDiv) {
-        selectorDiv.innerHTML = '';
-        selectorDiv.style.display = 'none';
+        selectorDiv.remove();
       }
 
       if (clearBtn) {
         clearBtn.style.display = 'none';
       }
 
-      // Clear input fields
-      const inputs = document.querySelectorAll(`#${type}-schema-inputs input`);
-      inputs.forEach(input => {
-        if (input.value) {
-          input.value = '';
-        }
-      });
+      // Clear and reset input fields to just one empty input
+      if (container) {
+        container.innerHTML = '';
+        // Add a single empty input (as first input, no remove button)
+        this.addSchemaUrlInput(type, container, '', true);
+      }
 
       // Emit event to notify other components
       window.dispatchEvent(new CustomEvent('schemas-cleared', {

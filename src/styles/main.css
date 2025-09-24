@@ -16,7 +16,7 @@
 
 @layer components {
   .btn-primary {
-    @apply px-4 py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 transition-colors duration-200;
+    @apply px-4 py-2 bg-amber-900 text-white font-semibold rounded-lg hover:bg-amber-800 transition-colors duration-200;
   }
 
   .btn-secondary {
@@ -24,7 +24,7 @@
   }
 
   .btn-danger {
-    @apply px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-colors duration-200;
+    @apply px-4 py-2 bg-red-700 text-white font-semibold rounded-lg hover:bg-red-600 transition-colors duration-200;
   }
 
   .input-field {
