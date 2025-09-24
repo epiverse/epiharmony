@@ -595,16 +595,27 @@ export class DataPanel {
   setupAIConfiguration() {
     const apiKeyInput = this.panel.querySelector('input[type="password"]');
     const statusDiv = document.getElementById('api-key-status');
+    const submitApiKeyBtn = document.getElementById('btn-submit-api-key');
+    const configureAiBtn = document.getElementById('btn-configure-ai');
     const forgetBtn = document.getElementById('btn-forget-api');
     const embeddingSelect = document.getElementById('embedding-model-select');
     const dimensionSelect = document.getElementById('embedding-dimension-select');
     const chatSelect = document.getElementById('chat-model-select');
-    const testEmbeddingBtn = document.getElementById('btn-test-embedding');
-    const testChatBtn = document.getElementById('btn-test-chat');
 
-    if (apiKeyInput) {
-      apiKeyInput.addEventListener('blur', async () => {
+    if (submitApiKeyBtn && apiKeyInput) {
+      submitApiKeyBtn.addEventListener('click', async () => {
+        submitApiKeyBtn.disabled = true;
+        submitApiKeyBtn.textContent = 'Validating...';
         await this.validateAPIKey(apiKeyInput.value);
+        submitApiKeyBtn.disabled = false;
+        submitApiKeyBtn.textContent = 'Submit API Key';
+      });
+
+      // Also submit on Enter key
+      apiKeyInput.addEventListener('keypress', async (e) => {
+        if (e.key === 'Enter') {
+          submitApiKeyBtn.click();
+        }
       });
     }
 
@@ -645,40 +656,30 @@ export class DataPanel {
       });
     }
 
-    if (testEmbeddingBtn) {
-      testEmbeddingBtn.addEventListener('click', async () => {
+    if (configureAiBtn) {
+      configureAiBtn.addEventListener('click', async () => {
         if (this.geminiService) {
-          testEmbeddingBtn.disabled = true;
-          testEmbeddingBtn.textContent = 'Testing...';
-          const result = await this.geminiService.testEmbedding();
-          testEmbeddingBtn.disabled = false;
-          testEmbeddingBtn.textContent = 'Test Embedding';
-          if (result.success) {
-            this.showStatus('Embedding test successful! Check console for details.', 'success');
-          } else {
-            this.showStatus(`Embedding test failed: ${result.error}`, 'error');
-          }
-        } else {
-          this.showStatus('Please enter and validate an API key first', 'error');
-        }
-      });
-    }
+          // Update all configurations
+          const embeddingModel = embeddingSelect?.value;
+          const chatModel = chatSelect?.value;
+          const dimension = dimensionSelect ? parseInt(dimensionSelect.value) : 3072;
 
-    if (testChatBtn) {
-      testChatBtn.addEventListener('click', async () => {
-        if (this.geminiService) {
-          testChatBtn.disabled = true;
-          testChatBtn.textContent = 'Testing...';
-          const result = await this.geminiService.testChat();
-          testChatBtn.disabled = false;
-          testChatBtn.textContent = 'Test Chat';
-          if (result.success) {
-            this.showStatus('Chat test successful! Check console for details.', 'success');
-          } else {
-            this.showStatus(`Chat test failed: ${result.error}`, 'error');
+          // Update the service
+          if (embeddingModel || chatModel) {
+            this.geminiService.setModels(embeddingModel, chatModel);
           }
+          if (dimension) {
+            this.geminiService.setEmbeddingDimension(dimension);
+          }
+
+          // Save to blueprint
+          await this.updateAIConfig('embeddingModel', embeddingModel);
+          await this.updateAIConfig('chatModel', chatModel);
+          await this.updateAIConfig('embeddingDimension', dimension);
+
+          this.showStatus('AI configuration updated successfully', 'success');
         } else {
-          this.showStatus('Please enter and validate an API key first', 'error');
+          this.showStatus('Please submit an API key first', 'error');
         }
       });
     }

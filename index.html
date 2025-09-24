@@ -72,7 +72,7 @@
                     </div>
 
                     <!-- Target Schema -->
-                    <div>
+                    <div class="mb-4">
                         <label class="block text-sm font-medium mb-2">Target Schema URL(s)</label>
                         <div id="target-schema-inputs" class="space-y-2">
                             <input type="url" placeholder="Enter target schema URL..." class="input-field">
@@ -80,23 +80,26 @@
                         <button class="text-amber-600 text-sm mt-2">+ Add another URL</button>
                         <div id="target-schema-status" class="mt-2"></div>
                     </div>
-                </div>
 
-                <!-- Data & AI Configuration -->
-                <div class="panel">
-                    <h3 class="text-lg font-semibold mb-3">Data & AI Configuration</h3>
+                    <!-- Horizontal Rule -->
+                    <hr class="my-4 border-gray-300">
 
                     <!-- Source Data -->
-                    <div class="mb-4">
+                    <div>
                         <label class="block text-sm font-medium mb-2">Source Data (Optional)</label>
                         <input type="file" accept=".csv,.tsv,.json" class="input-field">
                         <div id="data-status" class="mt-2"></div>
                     </div>
+                </div>
 
-                    <!-- AI Configuration -->
+                <!-- AI Configuration -->
+                <div class="panel">
+                    <h3 class="text-lg font-semibold mb-3">AI Configuration</h3>
+
                     <div>
                         <label class="block text-sm font-medium mb-2">Gemini API Key</label>
                         <input type="password" placeholder="Enter your Gemini API key..." class="input-field mb-2">
+                        <button id="btn-submit-api-key" class="btn-primary w-full mb-2">Submit API Key</button>
                         <div id="api-key-status" class="mb-3"></div>
 
                         <label class="block text-sm font-medium mb-2">Embedding Model</label>
@@ -121,10 +124,7 @@
                             <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
                         </select>
 
-                        <div class="flex gap-2 mb-3">
-                            <button id="btn-test-embedding" class="btn-primary flex-1 text-sm">Test Embedding</button>
-                            <button id="btn-test-chat" class="btn-primary flex-1 text-sm">Test Chat</button>
-                        </div>
+                        <button id="btn-configure-ai" class="btn-primary w-full mb-3">Configure AI</button>
 
                         <button id="btn-forget-api" class="btn-secondary w-full">Forget API Key</button>
                     </div>

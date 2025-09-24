@@ -35,7 +35,7 @@ export class GeminiService {
       throw new Error('API key not set');
     }
 
-    try {
+try {
       // Test with a simple generation request
       const response = await this.genAI.models.generateContent({
         model: 'gemini-2.5-flash',
@@ -256,56 +256,6 @@ export class GeminiService {
     }
   }
 
-  async testEmbedding() {
-    try {
-      const testText = "This is a test embedding for epiHarmony";
-      console.log(`Testing embedding with model: ${this.models.embedding}`);
-      console.log(`Output dimension: ${this.embeddingDimension}`);
-
-      const embedding = await this.generateEmbedding(testText);
-
-      console.log('Embedding test successful!');
-      console.log(`Generated embedding with ${embedding.values.length} dimensions`);
-      console.log('First 10 values:', embedding.values.slice(0, 10));
-
-      return {
-        success: true,
-        model: this.models.embedding,
-        dimension: embedding.values.length,
-        sample: embedding.values.slice(0, 10)
-      };
-    } catch (error) {
-      console.error('Embedding test failed:', error);
-      return {
-        success: false,
-        error: error.message
-      };
-    }
-  }
-
-  async testChat() {
-    try {
-      const testPrompt = "Say 'Hello from epiHarmony!' and briefly explain what data harmonization means in one sentence.";
-      console.log(`Testing chat with model: ${this.models.chat}`);
-
-      const response = await this.generateContent(testPrompt);
-
-      console.log('Chat test successful!');
-      console.log('Response:', response);
-
-      return {
-        success: true,
-        model: this.models.chat,
-        response: response
-      };
-    } catch (error) {
-      console.error('Chat test failed:', error);
-      return {
-        success: false,
-        error: error.message
-      };
-    }
-  }
 }
 
 // Singleton instance
