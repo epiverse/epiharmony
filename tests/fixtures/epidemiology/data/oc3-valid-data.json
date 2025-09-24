@@ -1,0 +1,92 @@
+[
+  {
+    "NEWID": 1001,
+    "ENTRYAGE": 55.7,
+    "EDUCATION": 4,
+    "HEIGHT": 65.5,
+    "BMI": 24.1,
+    "ALC": 5.2,
+    "SMOKE": 0
+  },
+  {
+    "NEWID": 1002,
+    "ENTRYAGE": 62.3,
+    "EDUCATION": 5,
+    "HEIGHT": 68.0,
+    "BMI": 28.9,
+    "ALC": 15.8,
+    "SMOKE": 1
+  },
+  {
+    "NEWID": 1003,
+    "ENTRYAGE": 48.9,
+    "EDUCATION": null,
+    "HEIGHT": 70.1,
+    "BMI": 21.5,
+    "ALC": 0.0,
+    "SMOKE": 0
+  },
+  {
+    "NEWID": 1004,
+    "ENTRYAGE": 71.0,
+    "EDUCATION": 3,
+    "HEIGHT": null,
+    "BMI": 32.7,
+    "ALC": null,
+    "SMOKE": 2
+  },
+  {
+    "NEWID": 1005,
+    "ENTRYAGE": 59.5,
+    "EDUCATION": 2,
+    "HEIGHT": 63.8,
+    "BMI": 19.3,
+    "ALC": 3.4,
+    "SMOKE": 0
+  },
+  {
+    "NEWID": 1006,
+    "ENTRYAGE": 67.2,
+    "EDUCATION": 1,
+    "HEIGHT": 59.2,
+    "BMI": 26.5,
+    "ALC": 12.1,
+    "SMOKE": 1
+  },
+  {
+    "NEWID": 1007,
+    "ENTRYAGE": 53.1,
+    "EDUCATION": 9,
+    "HEIGHT": 66.7,
+    "BMI": 22.8,
+    "ALC": 8.0,
+    "SMOKE": 2
+  },
+  {
+    "NEWID": 1008,
+    "ENTRYAGE": 64.8,
+    "EDUCATION": 4,
+    "HEIGHT": 72.5,
+    "BMI": 30.4,
+    "ALC": 1.5,
+    "SMOKE": 0
+  },
+  {
+    "NEWID": 1009,
+    "ENTRYAGE": 75.6,
+    "EDUCATION": 5,
+    "HEIGHT": null,
+    "BMI": null,
+    "ALC": null,
+    "SMOKE": null
+  },
+  {
+    "NEWID": 1010,
+    "ENTRYAGE": 50.4,
+    "EDUCATION": 3,
+    "HEIGHT": 61.3,
+    "BMI": 25.0,
+    "ALC": 6.7,
+    "SMOKE": 1
+  }
+]

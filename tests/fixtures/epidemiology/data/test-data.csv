@@ -1,0 +1,11 @@
+id,age,gender,status,score
+1,25,M,active,85
+2,30,F,active,92
+3,45,M,inactive,78
+4,22,F,active,88
+5,38,Unknown,pending,75
+6,-5,M,active,110
+7,150,F,inactive,65
+8,28,M,active,abc
+9,35,F,,80
+10,29,M,active,95

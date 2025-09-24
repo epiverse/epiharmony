@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Test Data Schema",
+  "description": "A simple schema for testing Quality Control",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "integer",
+        "description": "Unique identifier"
+      },
+      "age": {
+        "type": "integer",
+        "description": "Age in years",
+        "minimum": 0,
+        "maximum": 120
+      },
+      "gender": {
+        "type": "string",
+        "description": "Gender",
+        "enum": ["M", "F"],
+        "enumDescriptions": ["Male", "Female"]
+      },
+      "status": {
+        "type": "string",
+        "description": "Current status",
+        "enum": ["active", "inactive", "pending"]
+      },
+      "score": {
+        "type": "number",
+        "description": "Test score",
+        "minimum": 0,
+        "maximum": 100
+      }
+    },
+    "required": ["id", "age", "gender", "status", "score"]
+  }
+}

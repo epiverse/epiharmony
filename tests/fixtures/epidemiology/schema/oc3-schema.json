@@ -1,0 +1,74 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Ovarian Cancer Cohort Consortium (OC3) Data Schema",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "NEWID": {
+            "type": "integer",
+            "description": "Unique ID for each study participant (sequential)."
+        },
+        "ENTRYAGE": {
+            "type": "number",
+            "description": "Age at entry (QXAGE in years)."
+        },
+        "EDUCATION": {
+            "description": "Highest level of education",
+            "type": ["integer", "null"],
+            "enum": [1, 2, 3, 4, 5, 9, null],
+            "enumDescriptions": [
+                "Did not finish high school (1)",
+                "High school (2)",
+                "Some college (3)",
+                "Completed college (4)",
+                "Postgraduate (5)",
+                "Unknown (9)",
+                "Missing/not provided"
+            ]
+        },
+        "HEIGHT": {
+            "description": "Height in inches; set missing if <48 or >84.",
+            "oneOf": [
+                {
+                    "type": "number",
+                    "minimum": 48,
+                    "maximum": 84
+                },
+                {"type": "null"}
+            ]
+        },
+        "BMI": {
+            "description": "Body mass index (kg/m^2); set missing if <14 or >60.",
+            "oneOf": [
+                {
+                    "type": "number",
+                    "minimum": 14,
+                    "maximum": 60
+                },
+                {"type": "null"}
+            ]
+        },
+        "ALC": {
+            "type": ["number", "null"],
+            "description": "Alcohol intake (grams/day). Null if missing.",
+            "oneOf": [
+                {
+                    "type": "number",
+                    "minimum": 0
+                },
+                {"type": "null"}
+            ]
+        },
+        "SMOKE": {
+            "description": "Smoking status",
+            "type": ["integer", "null"],
+            "enum": [0, 1, 2, null],
+            "enumDescriptions": [
+                "Never (0)",
+                "Former (1)",
+                "Current (2)",
+                "Missing/unknown"
+            ]
+        }
+    }
+}
