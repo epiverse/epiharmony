@@ -47,13 +47,13 @@
                 <div class="panel">
                     <h3 class="text-lg font-semibold mb-3">Blueprint File</h3>
                     <div class="space-y-2">
-                        <button class="btn-primary w-full">Create New</button>
-                        <button class="btn-secondary w-full">Upload File</button>
+                        <button id="btn-create-new" class="btn-primary w-full">Create New</button>
+                        <button id="btn-upload-file" class="btn-secondary w-full">Upload File</button>
                         <div class="flex space-x-2">
                             <input type="url" placeholder="Load from URL..." class="input-field flex-1">
-                            <button class="btn-secondary">Load</button>
+                            <button id="btn-load-blueprint" class="btn-secondary">Load</button>
                         </div>
-                        <button class="btn-danger w-full mt-3">Clear Project</button>
+                        <button id="btn-clear-project" class="btn-danger w-full mt-3">Clear Project</button>
                     </div>
                 </div>
 
@@ -110,7 +110,7 @@
                             <option value="gemini-1.5-pro">gemini-1.5-pro</option>
                         </select>
 
-                        <button class="btn-secondary w-full">Forget API Key</button>
+                        <button id="btn-forget-api" class="btn-secondary w-full">Forget API Key</button>
                     </div>
                 </div>
             </div>

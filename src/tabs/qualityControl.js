@@ -1,12 +1,19 @@
+import { SchemaViewer } from '../components/schemaViewer.js';
+import { StorageManager } from '../core/storage.js';
+import { SchemaProcessor } from '../utils/schema.js';
+
 export class QualityControl {
   constructor(container) {
     this.container = container;
     this.validationErrors = [];
-    this.init();
-  }
-
-  init() {
+    this.storageManager = new StorageManager();
+    this.targetViewer = null;
+    this.targetProcessor = null;
+    // Don't call init in constructor - setup synchronously
     this.render();
+    this.setupEventListeners();
+    // Load schema asynchronously after render
+    this.loadTargetSchema().catch(console.error);
   }
 
   render() {
@@ -89,11 +96,18 @@ export class QualityControl {
         <!-- Schema Dictionary Tab Content (Hidden by default) -->
         <div id="schema-dictionary-content" class="hidden">
           <div class="border rounded-lg">
-            <div class="bg-gray-100 px-4 py-2 border-b">
+            <div class="bg-gray-100 px-4 py-2 border-b flex justify-between items-center">
               <span class="font-medium">Target Schema Dictionary</span>
+              <div id="target-schema-info" class="text-sm text-gray-600"></div>
             </div>
-            <div id="schema-dictionary" class="h-[600px] p-4 overflow-auto">
-              <p class="text-gray-500">No target schema loaded.</p>
+            <div id="schema-dictionary" class="h-[600px] overflow-auto">
+              <div class="text-gray-500 text-center py-8">
+                <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <p>No target schema loaded</p>
+                <p class="text-sm mt-2">Load a target schema from the Configuration Panel</p>
+              </div>
             </div>
           </div>
         </div>
@@ -129,11 +143,100 @@ export class QualityControl {
     });
   }
 
-  onActivate() {
+  setupEventListeners() {
+    // Listen for schema load events
+    window.addEventListener('schemas-loaded', async (event) => {
+      const { type } = event.detail;
+      if (type === 'target') {
+        await this.loadTargetSchema();
+      }
+    });
+
+    // Listen for schema clear events
+    window.addEventListener('schemas-cleared', async (event) => {
+      const { type } = event.detail;
+      if (type === 'target') {
+        this.clearTargetSchema();
+      }
+    });
+  }
+
+  async loadTargetSchema() {
+    const stored = await this.storageManager.getTargetSchemas();
+    if (stored && stored.resolvedSchema) {
+      // Recreate processor
+      this.targetProcessor = new SchemaProcessor();
+      if (stored.processor && stored.processor.schemas) {
+        stored.processor.schemas.forEach(([id, schema]) => {
+          this.targetProcessor.schemas.set(id, schema);
+        });
+        this.targetProcessor.mainSchema = stored.mainSchema;
+        this.targetProcessor.resolvedSchema = stored.resolvedSchema;
+      }
+
+      // Create viewer for Schema Dictionary tab
+      const viewerContainer = document.getElementById('schema-dictionary');
+      if (viewerContainer) {
+        this.targetViewer = new SchemaViewer(viewerContainer, {
+          searchable: true,
+          title: '',
+          emptyMessage: 'No target schema loaded'
+        });
+        this.targetViewer.setSchema(stored.resolvedSchema, this.targetProcessor);
+
+        // Update info
+        const infoEl = document.getElementById('target-schema-info');
+        if (infoEl) {
+          const count = this.targetViewer.getPropertyCount();
+          infoEl.textContent = `${count} variable${count !== 1 ? 's' : ''}`;
+        }
+
+        // Update validation schema name
+        const schemaNameEl = document.getElementById('validation-schema-name');
+        if (schemaNameEl) {
+          schemaNameEl.textContent = stored.mainSchema?.title || 'Target Schema Loaded';
+        }
+      }
+    }
+  }
+
+  async onActivate() {
     console.log('Quality Control tab activated');
+    // Reload schema in case it was updated
+    await this.loadTargetSchema();
+  }
+
+  clearTargetSchema() {
+    this.targetProcessor = null;
+    this.targetViewer = null;
+
+    const viewerContainer = document.getElementById('schema-dictionary');
+    if (viewerContainer) {
+      viewerContainer.innerHTML = `
+        <div class="text-gray-500 text-center py-8">
+          <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <p>No target schema loaded</p>
+          <p class="text-sm mt-2">Load a target schema from the Configuration Panel</p>
+        </div>
+      `;
+    }
+
+    const infoEl = document.getElementById('target-schema-info');
+    if (infoEl) {
+      infoEl.textContent = '';
+    }
+
+    const schemaNameEl = document.getElementById('validation-schema-name');
+    if (schemaNameEl) {
+      schemaNameEl.textContent = 'Not loaded';
+    }
   }
 
   refresh() {
     this.render();
+    this.setupEventListeners();
+    this.loadTargetSchema();
   }
 }

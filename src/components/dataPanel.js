@@ -1,4 +1,4 @@
-import { validateSchema, loadSchemaFromUrl } from '../utils/schema.js';
+import { validateSchema, validateTabularSchema, loadSchemaFromUrl, SchemaProcessor } from '../utils/schema.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { StorageManager } from '../core/storage.js';
 
@@ -23,7 +23,8 @@ export class DataPanel {
     this.setupSchemaHandlers();
     this.setupDataUpload();
     this.setupAIConfiguration();
-    this.loadSavedConfiguration();
+    // Load saved configuration asynchronously
+    this.loadSavedConfiguration().catch(console.error);
   }
 
   setupToggleButton() {
@@ -72,10 +73,10 @@ export class DataPanel {
   }
 
   setupBlueprintHandlers() {
-    const createNewBtn = this.panel.querySelector('button:contains("Create New")');
-    const uploadBtn = this.panel.querySelector('button:contains("Upload File")');
-    const loadUrlBtn = this.panel.querySelector('button:contains("Load")');
-    const clearBtn = this.panel.querySelector('button:contains("Clear Project")');
+    const createNewBtn = document.getElementById('btn-create-new');
+    const uploadBtn = document.getElementById('btn-upload-file');
+    const loadUrlBtn = document.getElementById('btn-load-blueprint');
+    const clearBtn = document.getElementById('btn-clear-project');
 
     if (createNewBtn) {
       createNewBtn.addEventListener('click', () => this.createNewBlueprint());
@@ -172,12 +173,12 @@ export class DataPanel {
   setupSchemaHandlers() {
     this.setupSchemaInput('source');
     this.setupSchemaInput('target');
+    this.addLoadSchemasButtons();
   }
 
   setupSchemaInput(type) {
     const container = document.getElementById(`${type}-schema-inputs`);
     const addButton = container?.nextElementSibling;
-    const statusDiv = document.getElementById(`${type}-schema-status`);
 
     if (addButton) {
       addButton.addEventListener('click', () => {
@@ -185,46 +186,233 @@ export class DataPanel {
         input.type = 'url';
         input.placeholder = `Enter ${type} schema URL...`;
         input.className = 'input-field';
-        input.addEventListener('blur', () => this.validateSchemaUrl(input, type));
         container.appendChild(input);
       });
     }
-
-    const initialInput = container?.querySelector('input');
-    if (initialInput) {
-      initialInput.addEventListener('blur', () => this.validateSchemaUrl(initialInput, type));
-    }
   }
 
-  async validateSchemaUrl(input, type) {
-    const url = input.value;
-    if (!url) return;
+  addLoadSchemasButtons() {
+    // Add Load Schemas buttons for both source and target
+    ['source', 'target'].forEach(type => {
+      const statusDiv = document.getElementById(`${type}-schema-status`);
 
+      // Check if button already exists
+      const existingBtn = document.getElementById(`load-${type}-schemas-btn`);
+      if (!existingBtn && statusDiv) {
+        // Create button container
+        const btnContainer = document.createElement('div');
+        btnContainer.className = 'mt-3 flex items-center gap-3';
+
+        // Create Load button
+        const loadBtn = document.createElement('button');
+        loadBtn.id = `load-${type}-schemas-btn`;
+        loadBtn.className = 'btn-primary text-sm';
+        loadBtn.textContent = `Load ${type === 'source' ? 'Source' : 'Target'} Schemas`;
+        loadBtn.addEventListener('click', () => this.loadSchemas(type));
+
+        // Create Clear button
+        const clearBtn = document.createElement('button');
+        clearBtn.id = `clear-${type}-schemas-btn`;
+        clearBtn.className = 'btn-secondary text-sm';
+        clearBtn.textContent = 'Clear';
+        clearBtn.style.display = 'none'; // Initially hidden
+        clearBtn.addEventListener('click', () => this.clearSchemas(type));
+
+        // Create main schema selector (initially hidden)
+        const selectorDiv = document.createElement('div');
+        selectorDiv.id = `${type}-main-schema-selector`;
+        selectorDiv.className = 'hidden flex-shrink-0';
+        selectorDiv.innerHTML = `
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-600 whitespace-nowrap">Main:</label>
+            <select id="${type}-main-schema-select" class="text-sm border rounded px-2 py-1 max-w-[150px]">
+              <option>Loading...</option>
+            </select>
+          </div>
+        `;
+
+        btnContainer.appendChild(loadBtn);
+        btnContainer.appendChild(clearBtn);
+        btnContainer.appendChild(selectorDiv);
+
+        // Insert after status div
+        statusDiv.parentNode.insertBefore(btnContainer, statusDiv.nextSibling);
+      }
+    });
+  }
+
+  async loadSchemas(type) {
+    const container = document.getElementById(`${type}-schema-inputs`);
     const statusDiv = document.getElementById(`${type}-schema-status`);
+    const loadBtn = document.getElementById(`load-${type}-schemas-btn`);
+    const selectorDiv = document.getElementById(`${type}-main-schema-selector`);
+
+    if (!container || !statusDiv) return;
+
+    // Get all URL inputs
+    const inputs = container.querySelectorAll('input[type="url"]');
+    const urls = Array.from(inputs)
+      .map(input => input.value.trim())
+      .filter(url => url !== '');
+
+    if (urls.length === 0) {
+      this.showSchemaStatus(statusDiv, 'Please enter at least one schema URL', 'error');
+      return;
+    }
+
+    // Disable button during loading
+    loadBtn.disabled = true;
+    loadBtn.textContent = 'Loading...';
 
     try {
-      statusDiv.innerHTML = '<span class="text-amber-600">Loading schema...</span>';
-      const schema = await loadSchemaFromUrl(url);
+      this.showSchemaStatus(statusDiv, 'Loading schemas...', 'loading');
 
-      if (validateSchema(schema)) {
-        statusDiv.innerHTML = '<span class="success-message">✓ Schema loaded successfully</span>';
-        await this.saveSchemaUrl(type, url);
-      } else {
-        statusDiv.innerHTML = '<span class="error-message">✗ Invalid schema format</span>';
+      const processor = new SchemaProcessor();
+      const result = await processor.loadMultipleSchemas(urls, type);
+
+      // Show success message
+      let message = `✓ Loaded ${result.loaded.length} schema${result.loaded.length !== 1 ? 's' : ''}`;
+      if (result.errors.length > 0) {
+        message += ` (${result.errors.length} failed)`;
       }
+
+      const properties = processor.extractProperties(result.resolvedSchema);
+      message += ` - ${properties.length} variables found`;
+
+      this.showSchemaStatus(statusDiv, message, 'success');
+
+      // Show the Clear button after successful load
+      const clearBtn = document.getElementById(`clear-${type}-schemas-btn`);
+      if (clearBtn) {
+        clearBtn.style.display = 'inline-block';
+      }
+
+      // Save to storage
+      await this.storageManager.saveSchemas(type, {
+        urls,
+        loaded: result.loaded,
+        mainSchema: result.mainSchema,
+        resolvedSchema: result.resolvedSchema,
+        allSchemas: result.allSchemas,
+        processor: {
+          schemas: Array.from(processor.schemas.entries()),
+          mainSchemaId: processor.mainSchema?.$id || urls[0]
+        }
+      });
+
+      // Update blueprint
+      const blueprint = await this.storageManager.getBlueprint() || this.createDefaultBlueprint();
+      blueprint.schemas[type].urls = urls;
+      blueprint.schemas[type].mainSchemaIndex = result.loaded.findIndex(l => l.schema === result.mainSchema);
+      await this.storageManager.saveBlueprint(blueprint);
+
+      // Show main schema selector only if multiple valid tabular schemas loaded from multiple URLs
+      const validSchemas = result.allSchemas.filter(schema => {
+        const validation = validateTabularSchema(schema);
+        return validation.valid;
+      });
+
+      if (urls.length > 1 && validSchemas.length > 1) {
+        this.showMainSchemaSelector(type, processor, selectorDiv);
+      } else {
+        selectorDiv.classList.add('hidden');
+      }
+
+      // Show any load errors
+      if (result.errors.length > 0) {
+        const errorMessages = result.errors.map(e => `${e.url}: ${e.error}`).join('<br>');
+        setTimeout(() => {
+          this.showSchemaStatus(
+            statusDiv,
+            `<div class="mt-2 text-xs">Failed to load:<br>${errorMessages}</div>`,
+            'error'
+          );
+        }, 3000);
+      }
+
+      // Notify other components
+      window.dispatchEvent(new CustomEvent('schemas-loaded', {
+        detail: { type, processor, result }
+      }));
+
     } catch (error) {
-      statusDiv.innerHTML = `<span class="error-message">✗ ${error.message}</span>`;
+      this.showSchemaStatus(statusDiv, error.message, 'error');
+    } finally {
+      loadBtn.disabled = false;
+      loadBtn.textContent = `Load ${type === 'source' ? 'Source' : 'Target'} Schemas`;
     }
   }
 
-  async saveSchemaUrl(type, url) {
-    const blueprint = await this.storageManager.getBlueprint();
-    if (blueprint) {
-      if (!blueprint.schemas[type].urls.includes(url)) {
-        blueprint.schemas[type].urls.push(url);
+  showMainSchemaSelector(type, processor, selectorDiv) {
+    const select = document.getElementById(`${type}-main-schema-select`);
+    if (!select) return;
+
+    const schemas = processor.getSchemaList();
+
+    select.innerHTML = schemas.map(schema => `
+      <option value="${schema.id}" ${schema.isMain ? 'selected' : ''}>
+        ${schema.title}
+      </option>
+    `).join('');
+
+    select.addEventListener('change', async (e) => {
+      const success = processor.setMainSchema(e.target.value);
+      if (success) {
+        const statusDiv = document.getElementById(`${type}-schema-status`);
+        const properties = processor.extractProperties(processor.resolvedSchema);
+        this.showSchemaStatus(
+          statusDiv,
+          `✓ Main schema changed - ${properties.length} variables`,
+          'success'
+        );
+
+        // Update storage
+        const stored = await this.storageManager.getSchemas(type);
+        if (stored) {
+          stored.mainSchema = processor.mainSchema;
+          stored.resolvedSchema = processor.resolvedSchema;
+          stored.processor.mainSchemaId = e.target.value;
+          await this.storageManager.saveSchemas(type, stored);
+        }
+
+        // Notify other components
+        window.dispatchEvent(new CustomEvent('schemas-loaded', {
+          detail: { type, processor, mainChanged: true }
+        }));
       }
-      await this.storageManager.saveBlueprint(blueprint);
-    }
+    });
+
+    selectorDiv.classList.remove('hidden');
+  }
+
+  showSchemaStatus(statusDiv, message, type = 'info') {
+    const bgColor = type === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
+                    type === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
+                    type === 'loading' ? 'bg-amber-50 border-amber-200 text-amber-800' :
+                    'bg-gray-50 border-gray-200 text-gray-800';
+
+    statusDiv.innerHTML = `
+      <div class="mt-2 px-3 py-2 border rounded-lg text-sm ${bgColor}">
+        ${type === 'loading' ? '<span class="inline-block animate-pulse">⏳</span> ' : ''}
+        ${message}
+      </div>
+    `;
+  }
+
+  createDefaultBlueprint() {
+    return {
+      version: '1.0',
+      created: new Date().toISOString(),
+      schemas: {
+        source: { urls: [], mainSchemaIndex: 0 },
+        target: { urls: [], mainSchemaIndex: 0 }
+      },
+      mappings: [],
+      aiConfig: {
+        embeddingModel: 'gemini-embedding-001',
+        chatModel: 'gemini-1.5-flash'
+      }
+    };
   }
 
   setupDataUpload() {
@@ -279,7 +467,7 @@ export class DataPanel {
   setupAIConfiguration() {
     const apiKeyInput = this.panel.querySelector('input[type="password"]');
     const statusDiv = document.getElementById('api-key-status');
-    const forgetBtn = this.panel.querySelector('button:contains("Forget API Key")');
+    const forgetBtn = document.getElementById('btn-forget-api');
     const embeddingSelect = this.panel.querySelector('select:first-of-type');
     const chatSelect = this.panel.querySelector('select:last-of-type');
 
@@ -394,6 +582,52 @@ export class DataPanel {
         await this.validateAPIKey(apiKey);
       }
     }
+
+    // Load saved schemas
+    await this.loadSavedSchemas('source');
+    await this.loadSavedSchemas('target');
+  }
+
+  async loadSavedSchemas(type) {
+    const stored = await this.storageManager.getSchemas(type);
+    if (stored && stored.resolvedSchema) {
+      const statusDiv = document.getElementById(`${type}-schema-status`);
+      const selectorDiv = document.getElementById(`${type}-main-schema-selector`);
+
+      // Recreate processor from stored data
+      const processor = new SchemaProcessor();
+      if (stored.processor && stored.processor.schemas) {
+        stored.processor.schemas.forEach(([id, schema]) => {
+          processor.schemas.set(id, schema);
+        });
+        processor.mainSchema = stored.mainSchema;
+        processor.resolvedSchema = stored.resolvedSchema;
+      }
+
+      // Show status
+      const properties = processor.extractProperties(stored.resolvedSchema);
+      this.showSchemaStatus(
+        statusDiv,
+        `✓ ${stored.loaded.length} schema${stored.loaded.length !== 1 ? 's' : ''} loaded - ${properties.length} variables`,
+        'success'
+      );
+
+      // Show the Clear button for saved schemas
+      const clearBtn = document.getElementById(`clear-${type}-schemas-btn`);
+      if (clearBtn) {
+        clearBtn.style.display = 'inline-block';
+      }
+
+      // Show selector if multiple URLs with multiple schemas
+      if (stored.urls && stored.urls.length > 1 && stored.allSchemas && stored.allSchemas.length > 1 && selectorDiv) {
+        this.showMainSchemaSelector(type, processor, selectorDiv);
+      }
+
+      // Notify other components
+      window.dispatchEvent(new CustomEvent('schemas-loaded', {
+        detail: { type, processor, result: stored, fromStorage: true }
+      }));
+    }
   }
 
   loadBlueprintToUI(blueprint) {
@@ -444,6 +678,54 @@ export class DataPanel {
       notification.classList.add('opacity-0', 'transition-opacity', 'duration-500');
       setTimeout(() => notification.remove(), 500);
     }, 3000);
+  }
+
+  async clearSchemas(type) {
+    try {
+      // Clear from storage
+      if (type === 'source') {
+        await this.storageManager.clearSourceSchemas();
+      } else if (type === 'target') {
+        await this.storageManager.clearTargetSchemas();
+      }
+
+      // Clear UI elements
+      const statusDiv = document.getElementById(`${type}-schema-status`);
+      const selectorDiv = document.getElementById(`${type}-main-schema-selector`);
+      const clearBtn = document.getElementById(`${type}-clear-btn`);
+
+      if (statusDiv) {
+        statusDiv.innerHTML = '';
+        statusDiv.style.display = 'none';
+      }
+
+      if (selectorDiv) {
+        selectorDiv.innerHTML = '';
+        selectorDiv.style.display = 'none';
+      }
+
+      if (clearBtn) {
+        clearBtn.style.display = 'none';
+      }
+
+      // Clear input fields
+      const inputs = document.querySelectorAll(`#${type}-schema-inputs input`);
+      inputs.forEach(input => {
+        if (input.value) {
+          input.value = '';
+        }
+      });
+
+      // Emit event to notify other components
+      window.dispatchEvent(new CustomEvent('schemas-cleared', {
+        detail: { type }
+      }));
+
+      this.showStatus(`${type.charAt(0).toUpperCase() + type.slice(1)} schemas cleared`, 'success');
+    } catch (error) {
+      console.error(`Failed to clear ${type} schemas:`, error);
+      this.showStatus(`Failed to clear ${type} schemas: ${error.message}`, 'error');
+    }
   }
 }
 
