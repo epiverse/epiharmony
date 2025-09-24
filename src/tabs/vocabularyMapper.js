@@ -12,6 +12,8 @@ export class VocabularyMapper {
     this.targetViewer = null;
     this.sourceProcessor = null;
     this.targetProcessor = null;
+    // View mode state (default to split view)
+    this.viewMode = localStorage.getItem('vocabularyMapperViewMode') || 'split';
     // Don't call init in constructor - it will be called after construction
     this.render();
     this.setupEventListeners();
@@ -20,14 +22,44 @@ export class VocabularyMapper {
   }
 
   render() {
+    const gridClass = this.viewMode === 'split' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1';
+
     this.container.innerHTML = `
       <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-2xl font-semibold mb-4">Vocabulary Mapper</h2>
-        <p class="text-gray-600 mb-6">Map concepts between source and target schemas with AI assistance.</p>
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <h2 class="text-2xl font-semibold">Vocabulary Mapper</h2>
+            <p class="text-gray-600 mt-1">Map concepts between source and target schemas with AI assistance.</p>
+          </div>
+
+          <!-- View Mode Toggle -->
+          <div class="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+            <button
+              id="split-view-btn"
+              class="view-toggle-btn ${this.viewMode === 'split' ? 'active' : ''}"
+              title="Side-by-side view"
+            >
+              <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4H5a1 1 0 00-1 1v14a1 1 0 001 1h4m6-20h4a1 1 0 011 1v14a1 1 0 01-1 1h-4m-6-20v20"></path>
+              </svg>
+              Split
+            </button>
+            <button
+              id="stacked-view-btn"
+              class="view-toggle-btn ${this.viewMode === 'stacked' ? 'active' : ''}"
+              title="Stacked view"
+            >
+              <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+              </svg>
+              Stacked
+            </button>
+          </div>
+        </div>
 
         <div class="space-y-6">
           <!-- Schema Viewers -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="grid ${gridClass} gap-4 transition-all duration-300">
             <div class="border rounded-lg">
               <div class="bg-gray-50 px-4 py-3 border-b">
                 <h3 class="font-semibold">Source Schema</h3>
@@ -106,6 +138,18 @@ export class VocabularyMapper {
   }
 
   setupEventListeners() {
+    // View toggle buttons
+    const splitBtn = document.getElementById('split-view-btn');
+    const stackedBtn = document.getElementById('stacked-view-btn');
+
+    if (splitBtn) {
+      splitBtn.addEventListener('click', () => this.setViewMode('split'));
+    }
+
+    if (stackedBtn) {
+      stackedBtn.addEventListener('click', () => this.setViewMode('stacked'));
+    }
+
     // Listen for schema load events from dataPanel
     window.addEventListener('schemas-loaded', async (event) => {
       const { type, processor, result } = event.detail;
@@ -125,6 +169,39 @@ export class VocabularyMapper {
         this.clearTargetSchema();
       }
     });
+  }
+
+  setViewMode(mode) {
+    if (this.viewMode === mode) return;
+
+    this.viewMode = mode;
+    localStorage.setItem('vocabularyMapperViewMode', mode);
+
+    // Update grid classes
+    const schemaGrid = this.container.querySelector('.space-y-6 > .grid');
+    if (schemaGrid) {
+      if (mode === 'split') {
+        schemaGrid.classList.remove('grid-cols-1');
+        schemaGrid.classList.add('lg:grid-cols-2');
+      } else {
+        schemaGrid.classList.remove('lg:grid-cols-2');
+        schemaGrid.classList.add('grid-cols-1');
+      }
+    }
+
+    // Update button states
+    const splitBtn = document.getElementById('split-view-btn');
+    const stackedBtn = document.getElementById('stacked-view-btn');
+
+    if (splitBtn && stackedBtn) {
+      if (mode === 'split') {
+        splitBtn.classList.add('active');
+        stackedBtn.classList.remove('active');
+      } else {
+        stackedBtn.classList.add('active');
+        splitBtn.classList.remove('active');
+      }
+    }
   }
 
   async loadSchemas() {

@@ -58,4 +58,49 @@
   .error-message {
     @apply text-red-600 text-sm mt-1;
   }
+
+  /* Sticky scrollbar for schema tables */
+  .schema-table-container {
+    position: relative;
+    max-height: 100%;
+  }
+
+  .schema-table-scroll {
+    max-height: inherit;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding-bottom: 12px; /* Space for scrollbar */
+  }
+
+  /* Make scrollbar more visible */
+  .schema-table-scroll::-webkit-scrollbar {
+    height: 12px;
+  }
+
+  .schema-table-scroll::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 6px;
+  }
+
+  .schema-table-scroll::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 6px;
+  }
+
+  .schema-table-scroll::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
+
+  /* View toggle button styles */
+  .view-toggle-btn {
+    @apply px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-200;
+  }
+
+  .view-toggle-btn.active {
+    @apply bg-amber-100 text-amber-900;
+  }
+
+  .view-toggle-btn:not(.active) {
+    @apply bg-gray-100 text-gray-600 hover:bg-gray-200;
+  }
 }
