@@ -1,5 +1,5 @@
 import { validateSchema, validateTabularSchema, loadSchemaFromUrl, SchemaProcessor } from '../utils/schema.js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getGeminiService } from '../services/gemini.js';
 import { StorageManager } from '../core/storage.js';
 
 export class DataPanel {
@@ -12,7 +12,7 @@ export class DataPanel {
     this.isCollapsed = false;
 
     this.storageManager = new StorageManager();
-    this.genAI = null;
+    this.geminiService = null;
 
     this.init();
   }
@@ -106,7 +106,8 @@ export class DataPanel {
       mappings: [],
       aiConfig: {
         embeddingModel: 'gemini-embedding-001',
-        chatModel: 'gemini-2.5-flash'
+        chatModel: 'gemini-2.5-flash',
+        embeddingDimension: 3072
       }
     };
 
@@ -448,7 +449,8 @@ export class DataPanel {
       mappings: [],
       aiConfig: {
         embeddingModel: 'gemini-embedding-001',
-        chatModel: 'gemini-2.5-flash'
+        chatModel: 'gemini-2.5-flash',
+        embeddingDimension: 3072
       }
     };
   }
@@ -594,8 +596,11 @@ export class DataPanel {
     const apiKeyInput = this.panel.querySelector('input[type="password"]');
     const statusDiv = document.getElementById('api-key-status');
     const forgetBtn = document.getElementById('btn-forget-api');
-    const embeddingSelect = this.panel.querySelector('select:first-of-type');
-    const chatSelect = this.panel.querySelector('select:last-of-type');
+    const embeddingSelect = document.getElementById('embedding-model-select');
+    const dimensionSelect = document.getElementById('embedding-dimension-select');
+    const chatSelect = document.getElementById('chat-model-select');
+    const testEmbeddingBtn = document.getElementById('btn-test-embedding');
+    const testChatBtn = document.getElementById('btn-test-chat');
 
     if (apiKeyInput) {
       apiKeyInput.addEventListener('blur', async () => {
@@ -606,6 +611,7 @@ export class DataPanel {
     if (forgetBtn) {
       forgetBtn.addEventListener('click', async () => {
         await this.storageManager.clearAPIKey();
+        this.geminiService = null;
         apiKeyInput.value = '';
         statusDiv.innerHTML = '';
         this.showStatus('API key removed', 'success');
@@ -615,12 +621,65 @@ export class DataPanel {
     if (embeddingSelect) {
       embeddingSelect.addEventListener('change', async (e) => {
         await this.updateAIConfig('embeddingModel', e.target.value);
+        if (this.geminiService) {
+          this.geminiService.setModels(e.target.value, null);
+        }
+      });
+    }
+
+    if (dimensionSelect) {
+      dimensionSelect.addEventListener('change', async (e) => {
+        await this.updateAIConfig('embeddingDimension', parseInt(e.target.value));
+        if (this.geminiService) {
+          this.geminiService.setEmbeddingDimension(parseInt(e.target.value));
+        }
       });
     }
 
     if (chatSelect) {
       chatSelect.addEventListener('change', async (e) => {
         await this.updateAIConfig('chatModel', e.target.value);
+        if (this.geminiService) {
+          this.geminiService.setModels(null, e.target.value);
+        }
+      });
+    }
+
+    if (testEmbeddingBtn) {
+      testEmbeddingBtn.addEventListener('click', async () => {
+        if (this.geminiService) {
+          testEmbeddingBtn.disabled = true;
+          testEmbeddingBtn.textContent = 'Testing...';
+          const result = await this.geminiService.testEmbedding();
+          testEmbeddingBtn.disabled = false;
+          testEmbeddingBtn.textContent = 'Test Embedding';
+          if (result.success) {
+            this.showStatus('Embedding test successful! Check console for details.', 'success');
+          } else {
+            this.showStatus(`Embedding test failed: ${result.error}`, 'error');
+          }
+        } else {
+          this.showStatus('Please enter and validate an API key first', 'error');
+        }
+      });
+    }
+
+    if (testChatBtn) {
+      testChatBtn.addEventListener('click', async () => {
+        if (this.geminiService) {
+          testChatBtn.disabled = true;
+          testChatBtn.textContent = 'Testing...';
+          const result = await this.geminiService.testChat();
+          testChatBtn.disabled = false;
+          testChatBtn.textContent = 'Test Chat';
+          if (result.success) {
+            this.showStatus('Chat test successful! Check console for details.', 'success');
+          } else {
+            this.showStatus(`Chat test failed: ${result.error}`, 'error');
+          }
+        } else {
+          this.showStatus('Please enter and validate an API key first', 'error');
+        }
       });
     }
   }
@@ -636,50 +695,94 @@ export class DataPanel {
     try {
       statusDiv.innerHTML = '<span class="text-amber-600">Validating API key...</span>';
 
-      this.genAI = new GoogleGenerativeAI(apiKey);
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-
-      const result = await model.generateContent('Test');
+      this.geminiService = getGeminiService(apiKey);
+      await this.geminiService.validateApiKey();
 
       await this.storageManager.saveAPIKey(apiKey);
       statusDiv.innerHTML = '<span class="success-message">✓ API key validated</span>';
 
+      // Load saved AI config
+      const blueprint = await this.storageManager.getBlueprint();
+      if (blueprint?.aiConfig) {
+        if (blueprint.aiConfig.embeddingModel) {
+          this.geminiService.setModels(blueprint.aiConfig.embeddingModel, null);
+        }
+        if (blueprint.aiConfig.chatModel) {
+          this.geminiService.setModels(null, blueprint.aiConfig.chatModel);
+        }
+        if (blueprint.aiConfig.embeddingDimension) {
+          this.geminiService.setEmbeddingDimension(blueprint.aiConfig.embeddingDimension);
+        }
+      }
+
       await this.loadAvailableModels();
     } catch (error) {
       statusDiv.innerHTML = '<span class="error-message">✗ Invalid API key</span>';
-      this.genAI = null;
+      this.geminiService = null;
     }
   }
 
   async loadAvailableModels() {
+    if (!this.geminiService) return;
+
     try {
-      const models = await this.genAI.listModels();
+      const { embeddingModels, chatModels } = await this.geminiService.listModels();
 
-      const embeddingSelect = this.panel.querySelector('select:first-of-type');
-      const chatSelect = this.panel.querySelector('select:last-of-type');
+      const embeddingSelect = document.getElementById('embedding-model-select');
+      const chatSelect = document.getElementById('chat-model-select');
 
-      if (embeddingSelect) {
+      if (embeddingSelect && embeddingModels.length > 0) {
+        const currentValue = embeddingSelect.value;
         embeddingSelect.innerHTML = '';
-        models
-          .filter(m => m.supportedGenerationMethods?.includes('embedContent'))
-          .forEach(model => {
-            const option = document.createElement('option');
-            option.value = model.name.split('/').pop();
-            option.textContent = model.displayName || model.name;
-            embeddingSelect.appendChild(option);
-          });
+
+        embeddingModels.forEach(model => {
+          const option = document.createElement('option');
+          option.value = model.name;
+          option.textContent = model.displayName || model.name;
+          if (model.description) {
+            option.title = model.description;
+          }
+          embeddingSelect.appendChild(option);
+        });
+
+        // Restore previous selection or set default
+        if (currentValue && Array.from(embeddingSelect.options).some(opt => opt.value === currentValue)) {
+          embeddingSelect.value = currentValue;
+        } else {
+          embeddingSelect.value = 'gemini-embedding-001';
+        }
+
+        // Update the gemini service with the current selection
+        if (this.geminiService) {
+          this.geminiService.setModels(embeddingSelect.value, null);
+        }
       }
 
-      if (chatSelect) {
+      if (chatSelect && chatModels.length > 0) {
+        const currentValue = chatSelect.value;
         chatSelect.innerHTML = '';
-        models
-          .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
-          .forEach(model => {
-            const option = document.createElement('option');
-            option.value = model.name.split('/').pop();
-            option.textContent = model.displayName || model.name;
-            chatSelect.appendChild(option);
-          });
+
+        chatModels.forEach(model => {
+          const option = document.createElement('option');
+          option.value = model.name;
+          option.textContent = model.displayName || model.name;
+          if (model.description) {
+            option.title = model.description;
+          }
+          chatSelect.appendChild(option);
+        });
+
+        // Restore previous selection or set default
+        if (currentValue && Array.from(chatSelect.options).some(opt => opt.value === currentValue)) {
+          chatSelect.value = currentValue;
+        } else {
+          chatSelect.value = 'gemini-2.5-flash';
+        }
+
+        // Update the gemini service with the current selection
+        if (this.geminiService) {
+          this.geminiService.setModels(null, chatSelect.value);
+        }
       }
     } catch (error) {
       console.error('Failed to load models:', error);
@@ -823,8 +926,9 @@ export class DataPanel {
     }
 
     if (blueprint.aiConfig) {
-      const embeddingSelect = this.panel.querySelector('select:first-of-type');
-      const chatSelect = this.panel.querySelector('select:last-of-type');
+      const embeddingSelect = document.getElementById('embedding-model-select');
+      const chatSelect = document.getElementById('chat-model-select');
+      const dimensionSelect = document.getElementById('embedding-dimension-select');
 
       if (embeddingSelect && blueprint.aiConfig.embeddingModel) {
         embeddingSelect.value = blueprint.aiConfig.embeddingModel;
@@ -832,6 +936,10 @@ export class DataPanel {
 
       if (chatSelect && blueprint.aiConfig.chatModel) {
         chatSelect.value = blueprint.aiConfig.chatModel;
+      }
+
+      if (dimensionSelect && blueprint.aiConfig.embeddingDimension) {
+        dimensionSelect.value = blueprint.aiConfig.embeddingDimension;
       }
     }
   }

@@ -35,13 +35,13 @@
   },
   "dependencies": {
     "@babycommando/entity-db": "^1.0.11",
-    "@google/generative-ai": "^0.24.1",
+    "@codemirror/lang-javascript": "^6.2.2",
+    "@codemirror/state": "^6.4.1",
+    "@codemirror/view": "^6.34.1",
+    "@google/genai": "^1.20.0",
     "ag-grid-community": "^34.2.0",
     "ajv": "^8.17.1",
     "codemirror": "^6.0.2",
-    "@codemirror/lang-javascript": "^6.2.2",
-    "@codemirror/view": "^6.34.1",
-    "@codemirror/state": "^6.4.1",
     "idb": "^8.0.3",
     "webr": "^0.5.5"
   }
