@@ -448,7 +448,7 @@ export class DataPanel {
       mappings: [],
       aiConfig: {
         embeddingModel: 'gemini-embedding-001',
-        chatModel: 'gemini-1.5-flash'
+        chatModel: 'gemini-2.5-flash'
       }
     };
   }
@@ -465,7 +465,26 @@ export class DataPanel {
             statusDiv.innerHTML = '<span class="text-amber-600">Loading data...</span>';
             const data = await this.parseDataFile(file);
             await this.storageManager.saveSourceData(data);
-            statusDiv.innerHTML = `<span class="success-message">✓ Loaded ${data.length} rows</span>`;
+
+            // Create status with clear button
+            const columns = data.length > 0 ? Object.keys(data[0]).length : 0;
+            statusDiv.innerHTML = `
+              <div class="flex items-center justify-between">
+                <span class="success-message">✓ Loaded ${data.length} rows × ${columns} columns</span>
+                <button id="clear-source-data" class="text-xs text-red-600 hover:text-red-700">Clear</button>
+              </div>
+            `;
+
+            // Setup clear button
+            const clearBtn = document.getElementById('clear-source-data');
+            if (clearBtn) {
+              clearBtn.addEventListener('click', () => this.clearSourceData());
+            }
+
+            // Emit event for other components
+            window.dispatchEvent(new CustomEvent('source-data-loaded', {
+              detail: { data, rowCount: data.length, columnCount: columns }
+            }));
           } catch (error) {
             statusDiv.innerHTML = `<span class="error-message">✗ ${error.message}</span>`;
           }
@@ -474,32 +493,101 @@ export class DataPanel {
     }
   }
 
+  async clearSourceData() {
+    await this.storageManager.saveSourceData(null);
+    const fileInput = this.panel.querySelector('input[type="file"]');
+    if (fileInput) {
+      fileInput.value = '';
+    }
+    const statusDiv = document.getElementById('data-status');
+    if (statusDiv) {
+      statusDiv.innerHTML = '';
+    }
+
+    // Emit event for other components
+    window.dispatchEvent(new CustomEvent('source-data-cleared'));
+    this.showStatus('Source data cleared', 'success');
+  }
+
   async parseDataFile(file) {
     const text = await file.text();
     const extension = file.name.split('.').pop().toLowerCase();
 
     if (extension === 'json') {
-      return JSON.parse(text);
+      const data = JSON.parse(text);
+      if (!Array.isArray(data)) {
+        throw new Error('JSON file must contain an array of objects');
+      }
+      return data;
     } else if (extension === 'csv' || extension === 'tsv') {
       const delimiter = extension === 'tsv' ? '\t' : ',';
       return this.parseCSV(text, delimiter);
     } else {
-      throw new Error('Unsupported file format');
+      throw new Error('Unsupported file format. Please use CSV, TSV, or JSON.');
     }
   }
 
   parseCSV(text, delimiter) {
-    const lines = text.split('\n').filter(line => line.trim());
-    const headers = lines[0].split(delimiter).map(h => h.trim());
+    const lines = text.split(/\r?\n/).filter(line => line.trim());
+    if (lines.length === 0) {
+      throw new Error('CSV file is empty');
+    }
 
-    return lines.slice(1).map(line => {
-      const values = line.split(delimiter);
+    // Parse headers
+    const headers = this.parseCSVLine(lines[0], delimiter);
+    if (headers.length === 0) {
+      throw new Error('No headers found in CSV file');
+    }
+
+    // Parse data rows
+    const data = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = this.parseCSVLine(lines[i], delimiter);
+      if (values.length === 0) continue; // Skip empty lines
+
       const row = {};
       headers.forEach((header, index) => {
-        row[header] = values[index]?.trim() || '';
+        row[header] = values[index] || '';
       });
-      return row;
-    });
+      data.push(row);
+    }
+
+    return data;
+  }
+
+  parseCSVLine(line, delimiter) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          // Escaped quote
+          current += '"';
+          i++; // Skip next quote
+        } else {
+          // Toggle quote mode
+          inQuotes = !inQuotes;
+        }
+      } else if (char === delimiter && !inQuotes) {
+        // Field separator
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+
+    // Add last field
+    if (current || result.length > 0) {
+      result.push(current.trim());
+    }
+
+    return result;
   }
 
   setupAIConfiguration() {
@@ -549,7 +637,7 @@ export class DataPanel {
       statusDiv.innerHTML = '<span class="text-amber-600">Validating API key...</span>';
 
       this.genAI = new GoogleGenerativeAI(apiKey);
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
       const result = await model.generateContent('Test');
 
@@ -624,6 +712,36 @@ export class DataPanel {
     // Load saved schemas
     await this.loadSavedSchemas('source');
     await this.loadSavedSchemas('target');
+
+    // Load saved source data
+    await this.loadSavedSourceData();
+  }
+
+  async loadSavedSourceData() {
+    const data = await this.storageManager.getSourceData();
+    if (data && Array.isArray(data) && data.length > 0) {
+      const statusDiv = document.getElementById('data-status');
+      if (statusDiv) {
+        const columns = Object.keys(data[0]).length;
+        statusDiv.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="success-message">✓ Loaded ${data.length} rows × ${columns} columns</span>
+            <button id="clear-source-data" class="text-xs text-red-600 hover:text-red-700">Clear</button>
+          </div>
+        `;
+
+        // Setup clear button
+        const clearBtn = document.getElementById('clear-source-data');
+        if (clearBtn) {
+          clearBtn.addEventListener('click', () => this.clearSourceData());
+        }
+      }
+
+      // Emit event for other components
+      window.dispatchEvent(new CustomEvent('source-data-loaded', {
+        detail: { data, rowCount: data.length, columnCount: Object.keys(data[0]).length, fromStorage: true }
+      }));
+    }
   }
 
   async loadSavedSchemas(type) {

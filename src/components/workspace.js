@@ -63,17 +63,21 @@ export class Workspace {
     this.tabButtons.forEach(button => {
       const icon = button.querySelector('img');
       if (button.dataset.tab === tabName) {
-        button.classList.remove('tab-inactive', 'text-gray-500', 'border-transparent');
-        button.classList.add('tab-active', 'text-amber-600', 'font-semibold', 'border-amber-500');
+        button.classList.remove('tab-inactive');
+        button.classList.add('tab-active');
         if (icon) {
           icon.classList.add('filter-amber');
         }
+        // Force a repaint to ensure immediate visual feedback
+        button.offsetHeight;
       } else {
-        button.classList.remove('tab-active', 'text-amber-600', 'font-semibold', 'border-amber-500');
-        button.classList.add('tab-inactive', 'text-gray-500', 'border-transparent');
+        button.classList.remove('tab-active');
+        button.classList.add('tab-inactive');
         if (icon) {
           icon.classList.remove('filter-amber');
         }
+        // Force a repaint to ensure immediate visual feedback
+        button.offsetHeight;
       }
     });
 
