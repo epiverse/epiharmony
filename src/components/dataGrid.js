@@ -16,15 +16,19 @@ export class DataGrid {
     };
     this.gridApi = null;
     this.data = [];
+    this.originalData = []; // Store original clean data for export
     this.validationErrors = [];
     this.errorsByRow = new Map();
     this.errorsByCell = new Map();
+    this.hasValidationRun = false; // Track if validation has been performed
   }
 
   init(data, columns = null) {
     if (!this.container) return;
 
     this.data = data || [];
+    this.originalData = JSON.parse(JSON.stringify(data || [])); // Deep copy original data
+    this.hasValidationRun = false; // Reset validation state when new data is loaded
 
     // Clear existing grid if present
     if (this.gridApi) {
@@ -98,6 +102,11 @@ export class DataGrid {
       filter: false,
       resizable: false,
       cellRenderer: (params) => {
+        // Only show status after validation has been run
+        if (!this.hasValidationRun) {
+          return ''; // Show blank until validation is performed
+        }
+
         const rowErrors = this.errorsByRow.get(params.node.rowIndex);
         if (rowErrors && rowErrors.length > 0) {
           return `<span class="text-red-500" title="${rowErrors.length} error(s)">❗</span>`;
@@ -111,6 +120,7 @@ export class DataGrid {
     this.validationErrors = errors;
     this.errorsByRow.clear();
     this.errorsByCell.clear();
+    this.hasValidationRun = true; // Mark that validation has been performed
 
     // Group errors by row and cell
     errors.forEach(error => {
@@ -226,19 +236,41 @@ export class DataGrid {
   }
 
   exportData(filename = 'data.csv') {
-    if (!this.gridApi) return;
+    // Export original clean data without validation annotations
+    if (!this.originalData || this.originalData.length === 0) return;
 
-    this.gridApi.exportDataAsCsv({
-      fileName: filename,
-      skipPinnedTop: true,
-      skipPinnedBottom: true
-    });
+    // Convert data to CSV format
+    const headers = Object.keys(this.originalData[0]);
+    const csvContent = [
+      headers.join(','),
+      ...this.originalData.map(row =>
+        headers.map(key => {
+          const value = row[key];
+          // Escape values containing commas, quotes, or newlines
+          if (value && (value.toString().includes(',') || value.toString().includes('"') || value.toString().includes('\n'))) {
+            return `"${value.toString().replace(/"/g, '""')}"`;
+          }
+          return value ?? '';
+        }).join(',')
+      )
+    ].join('\n');
+
+    // Download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
   }
 
   setData(data) {
     this.data = data;
+    this.originalData = JSON.parse(JSON.stringify(data || [])); // Deep copy original data
+    this.hasValidationRun = false; // Reset validation state when new data is set
     if (this.gridApi) {
       this.gridApi.setRowData(data);
+      this.gridApi.refreshCells({ force: true }); // Refresh to update status column
     } else {
       // Re-initialize grid with new data
       this.init(data);

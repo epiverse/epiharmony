@@ -105,7 +105,7 @@ export class QualityControl {
         <div id="schema-dictionary-content" class="hidden">
           <div class="border rounded-lg">
             <div class="bg-gray-100 px-4 py-2 border-b flex justify-between items-center">
-              <span class="font-medium">Target Schema Dictionary</span>
+              <span class="font-medium">Target Schema</span>
               <div id="target-schema-info" class="text-sm text-gray-600"></div>
             </div>
             <div id="schema-dictionary" class="h-[600px] overflow-auto">
@@ -170,6 +170,8 @@ export class QualityControl {
 
     // Listen for data load events
     window.addEventListener('source-data-loaded', async (event) => {
+      // Clear any existing validation when new data is loaded
+      this.clearValidation();
       this.sourceData = event.detail.data;
       await this.loadSourceData();
     });
@@ -304,12 +306,18 @@ export class QualityControl {
     // Initialize data grid
     const gridContainer = document.getElementById('validation-grid');
     if (gridContainer) {
-      if (!this.dataGrid) {
-        this.dataGrid = new DataGrid(gridContainer, {
-          showStatusColumn: true,
-          height: '500px'
-        });
+      // Destroy existing grid and clear container to prevent stacking
+      if (this.dataGrid) {
+        this.dataGrid.destroy();
+        this.dataGrid = null;
       }
+      gridContainer.innerHTML = ''; // Clear container completely
+
+      // Create new grid instance
+      this.dataGrid = new DataGrid(gridContainer, {
+        showStatusColumn: true,
+        height: '500px'
+      });
       this.dataGrid.init(this.sourceData);
     }
   }
@@ -502,13 +510,114 @@ export class QualityControl {
   }
 
   exportData() {
-    if (!this.dataGrid) {
+    if (!this.sourceData || this.sourceData.length === 0) {
       this.showNotification('No data to export', 'error');
       return;
     }
 
-    this.dataGrid.exportData('source-data.csv');
-    this.showNotification('Data exported successfully', 'success');
+    // Show format selection dialog
+    this.showExportDialog();
+  }
+
+  showExportDialog() {
+    // Create modal overlay
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.innerHTML = `
+      <div class="bg-white rounded-lg p-6 max-w-sm w-full">
+        <h3 class="text-lg font-semibold mb-4">Export Data</h3>
+        <p class="text-gray-600 mb-4">Choose export format:</p>
+        <div class="space-y-2 mb-4">
+          <label class="flex items-center">
+            <input type="radio" name="export-format" value="csv" class="mr-2" checked>
+            <span>CSV (.csv)</span>
+          </label>
+          <label class="flex items-center">
+            <input type="radio" name="export-format" value="json" class="mr-2">
+            <span>JSON (.json)</span>
+          </label>
+        </div>
+        <div class="flex justify-end space-x-2">
+          <button id="cancel-export" class="btn-secondary">Cancel</button>
+          <button id="confirm-export" class="btn-primary">Export</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Handle cancel
+    document.getElementById('cancel-export').addEventListener('click', () => {
+      modal.remove();
+    });
+
+    // Handle export
+    document.getElementById('confirm-export').addEventListener('click', () => {
+      const format = document.querySelector('input[name="export-format"]:checked').value;
+      modal.remove();
+
+      if (format === 'json') {
+        this.exportAsJSON();
+      } else {
+        this.exportAsCSV();
+      }
+    });
+
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
+  }
+
+  exportAsCSV() {
+    // Collect all unique keys from all rows
+    const allKeys = new Set();
+    this.sourceData.forEach(row => {
+      Object.keys(row).forEach(key => allKeys.add(key));
+    });
+    const headers = Array.from(allKeys);
+
+    // Convert data to CSV format
+    const csvContent = [
+      headers.join(','),
+      ...this.sourceData.map(row =>
+        headers.map(key => {
+          const value = row[key];
+          // Escape values containing commas, quotes, or newlines
+          if (value && (value.toString().includes(',') || value.toString().includes('"') || value.toString().includes('\n'))) {
+            return `"${value.toString().replace(/"/g, '""')}"`;
+          }
+          return value ?? '';
+        }).join(',')
+      )
+    ].join('\n');
+
+    // Download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'source-data.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
+
+    this.showNotification('Data exported as CSV', 'success');
+  }
+
+  exportAsJSON() {
+    // Export as JSON array
+    const jsonContent = JSON.stringify(this.sourceData, null, 2);
+
+    // Download file
+    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'source-data.json';
+    link.click();
+    URL.revokeObjectURL(link.href);
+
+    this.showNotification('Data exported as JSON', 'success');
   }
 
   exportErrors() {
