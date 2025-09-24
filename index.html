@@ -14,8 +14,8 @@
             <div class="flex items-center justify-between h-16">
                 <!-- Logo and App Name -->
                 <div class="flex items-center space-x-3">
-                    <img src="/assets/logo/epiharmony-logo.svg" alt="epiHarmony Logo" class="w-10 h-10">
-                    <h1 class="text-2xl font-dancing font-bold">epiHarmony</h1>
+                    <img src="/assets/logo/epiharmony-logo.svg" alt="epiHarmony Logo" class="w-12 h-12">
+                    <h1 class="text-3xl font-dancing font-bold">epiHarmony</h1>
                 </div>
 
                 <!-- GitHub Link -->
@@ -23,7 +23,7 @@
                    target="_blank"
                    rel="noopener noreferrer"
                    class="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-                    <img src="/assets/logo/github-logo.svg" alt="GitHub" class="w-6 h-6">
+                    <img src="/assets/logo/github-logo.svg" alt="GitHub" class="w-8 h-8">
                     <span class="hidden sm:inline">View on GitHub</span>
                 </a>
             </div>
@@ -42,7 +42,7 @@
             </button>
 
             <!-- Panel Content -->
-            <div id="panel-content" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div id="panel-content" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-300 ease-in-out overflow-hidden">
                 <!-- Blueprint File Section -->
                 <div class="panel">
                     <h3 class="text-lg font-semibold mb-3">Blueprint File</h3>
@@ -121,15 +121,15 @@
     <main id="workspace" class="container mx-auto px-4 py-6">
         <!-- Tab Navigation -->
         <div class="flex border-b border-gray-200 mb-6">
-            <button class="tab-button tab-active px-4 py-3 flex items-center space-x-2" data-tab="vocabulary-mapper">
-                <img src="/assets/logo/vocabulary-mapper-logo.svg" alt="" class="w-5 h-5">
+            <button class="tab-button tab-active px-4 py-3 mx-1 flex items-center space-x-2 text-amber-600 font-semibold border-b-4 border-amber-500 transition-all duration-200" data-tab="vocabulary-mapper">
+                <img src="/assets/logo/vocabulary-mapper-logo.svg" alt="" class="w-5 h-5 filter-amber">
                 <span>Vocabulary Mapper</span>
             </button>
-            <button class="tab-button tab-inactive px-4 py-3 flex items-center space-x-2" data-tab="data-transform">
+            <button class="tab-button tab-inactive px-4 py-3 mx-1 flex items-center space-x-2 text-gray-500 border-b-4 border-transparent hover:text-gray-600 hover:border-gray-300 transition-all duration-200" data-tab="data-transform">
                 <img src="/assets/logo/data-transform-logo.svg" alt="" class="w-5 h-5">
                 <span>Data Transform</span>
             </button>
-            <button class="tab-button tab-inactive px-4 py-3 flex items-center space-x-2" data-tab="quality-control">
+            <button class="tab-button tab-inactive px-4 py-3 mx-1 flex items-center space-x-2 text-gray-500 border-b-4 border-transparent hover:text-gray-600 hover:border-gray-300 transition-all duration-200" data-tab="quality-control">
                 <img src="/assets/logo/quality-control-logo.svg" alt="" class="w-5 h-5">
                 <span>Quality Control</span>
             </button>

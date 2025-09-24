@@ -32,11 +32,15 @@
   }
 
   .tab-active {
-    @apply bg-white text-amber-600 border-b-2 border-amber-600;
+    @apply text-amber-600 font-semibold border-b-4 border-amber-500;
   }
 
   .tab-inactive {
-    @apply bg-gray-100 text-gray-600 hover:bg-gray-200;
+    @apply text-gray-500 border-b-4 border-transparent hover:text-gray-600 hover:border-gray-300;
+  }
+
+  .filter-amber {
+    filter: brightness(0) saturate(100%) invert(65%) sepia(62%) saturate(4677%) hue-rotate(359deg) brightness(102%) contrast(96%);
   }
 
   .panel {

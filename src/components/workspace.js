@@ -61,12 +61,19 @@ export class Workspace {
     if (!this.tabs[tabName] && this.activeTab === tabName) return;
 
     this.tabButtons.forEach(button => {
+      const icon = button.querySelector('img');
       if (button.dataset.tab === tabName) {
-        button.classList.remove('tab-inactive');
-        button.classList.add('tab-active');
+        button.classList.remove('tab-inactive', 'text-gray-500', 'border-transparent');
+        button.classList.add('tab-active', 'text-amber-600', 'font-semibold', 'border-amber-500');
+        if (icon) {
+          icon.classList.add('filter-amber');
+        }
       } else {
-        button.classList.remove('tab-active');
-        button.classList.add('tab-inactive');
+        button.classList.remove('tab-active', 'text-amber-600', 'font-semibold', 'border-amber-500');
+        button.classList.add('tab-inactive', 'text-gray-500', 'border-transparent');
+        if (icon) {
+          icon.classList.remove('filter-amber');
+        }
       }
     });
 

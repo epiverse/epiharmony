@@ -38,13 +38,36 @@ export class DataPanel {
     this.isCollapsed = !this.isCollapsed;
 
     if (this.isCollapsed) {
-      this.panelContent.classList.add('hidden');
+      // First set max-height for animation
+      this.panelContent.style.maxHeight = this.panelContent.scrollHeight + 'px';
+      // Force a reflow to ensure the max-height is applied
+      this.panelContent.offsetHeight;
+      // Then collapse
+      this.panelContent.classList.add('opacity-0');
+      this.panelContent.style.maxHeight = '0';
       this.toggleIcon.classList.add('rotate-180');
       this.toggleText.textContent = 'Show Configuration Panel';
+
+      // Hide completely after animation
+      setTimeout(() => {
+        if (this.isCollapsed) {
+          this.panelContent.classList.add('invisible');
+        }
+      }, 300);
     } else {
-      this.panelContent.classList.remove('hidden');
+      // Show and expand
+      this.panelContent.classList.remove('invisible');
+      this.panelContent.classList.remove('opacity-0');
+      this.panelContent.style.maxHeight = this.panelContent.scrollHeight + 'px';
       this.toggleIcon.classList.remove('rotate-180');
       this.toggleText.textContent = 'Hide Configuration Panel';
+
+      // Remove max-height after animation to allow dynamic content
+      setTimeout(() => {
+        if (!this.isCollapsed) {
+          this.panelContent.style.maxHeight = 'none';
+        }
+      }, 300);
     }
   }
 
@@ -81,8 +104,8 @@ export class DataPanel {
       },
       mappings: [],
       aiConfig: {
-        embeddingModel: 'text-embedding-004',
-        chatModel: 'gemini-1.5-flash'
+        embeddingModel: 'gemini-embedding-001',
+        chatModel: 'gemini-2.5-flash'
       }
     };
 
