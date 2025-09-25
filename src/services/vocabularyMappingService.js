@@ -10,6 +10,10 @@ export class VocabularyMappingService {
     this.targetDB = null;
     this.mappings = [];
     this.candidateMappings = [];
+    this.schemaMetadata = {
+      source: null,
+      target: null
+    };
   }
 
   async initialize() {
@@ -36,9 +40,54 @@ export class VocabularyMappingService {
         model: null // We'll use manual vectors from Gemini
       });
 
+      // Load cached metadata
+      this.schemaMetadata = await this.storageManager.getVectorDB('metadata') || {
+        source: null,
+        target: null
+      };
+
       console.log('Vector databases initialized');
     } catch (error) {
       console.error('Failed to initialize vector databases:', error);
+    }
+  }
+
+  /**
+   * Generate a hash for a schema to detect changes
+   */
+  getSchemaHash(schema) {
+    // Create a deterministic string representation of the schema
+    const schemaString = JSON.stringify(schema, Object.keys(schema).sort());
+    // Simple hash function (can be replaced with crypto.subtle.digest for better hashing)
+    let hash = 0;
+    for (let i = 0; i < schemaString.length; i++) {
+      const char = schemaString.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash.toString(36);
+  }
+
+  /**
+   * Check if embeddings are cached and valid
+   */
+  async isCacheValid(type, schema) {
+    const currentHash = this.getSchemaHash(schema);
+    const metadata = this.schemaMetadata[type];
+
+    if (!metadata || metadata.hash !== currentHash) {
+      return false;
+    }
+
+    // Check if the database actually has data
+    try {
+      const db = type === 'source' ? this.sourceDB : this.targetDB;
+      // Try to query for a test embedding to verify data exists
+      const testResult = await db.queryManualVectors([0], 1);
+      return true; // Cache is valid if we can query
+    } catch (error) {
+      console.log(`No cached embeddings found for ${type} schema`);
+      return false;
     }
   }
 
@@ -114,9 +163,12 @@ export class VocabularyMappingService {
 
         // Progress callback
         if (options.onProgress) {
+          const processed = Math.min(i + batchSize, texts.length);
           options.onProgress({
-            processed: Math.min(i + batchSize, texts.length),
-            total: texts.length
+            processed: processed,
+            total: texts.length,
+            percent: Math.round((processed / texts.length) * 100),
+            message: `Processing embeddings (${processed}/${texts.length})...`
           });
         }
 
@@ -144,56 +196,99 @@ export class VocabularyMappingService {
 
       console.log(`Extracted ${sourceProps.length} source properties and ${targetProps.length} target properties`);
 
-      // Generate embeddings
-      console.log('Generating source embeddings...');
-      const sourceEmbeddings = await this.generateEmbeddings(sourceProps, {
-        ...options,
-        onProgress: (progress) => {
-          if (options.onProgress) {
-            options.onProgress({
-              phase: 'source',
-              ...progress
-            });
-          }
+      // Check if we have valid cached embeddings
+      const sourceCacheValid = await this.isCacheValid('source', sourceSchema);
+      const targetCacheValid = await this.isCacheValid('target', targetSchema);
+
+      if (sourceCacheValid && targetCacheValid) {
+        console.log('Using cached embeddings - no regeneration needed');
+        if (options.onProgress) {
+          options.onProgress({
+            phase: 'cached',
+            message: 'Using cached embeddings'
+          });
         }
-      });
-
-      console.log('Generating target embeddings...');
-      const targetEmbeddings = await this.generateEmbeddings(targetProps, {
-        ...options,
-        onProgress: (progress) => {
-          if (options.onProgress) {
-            options.onProgress({
-              phase: 'target',
-              ...progress
-            });
-          }
-        }
-      });
-
-      // Clear existing data
-      // Note: EntityDB doesn't have a clear method, so we'll work with what we have
-
-      // Insert into vector databases
-      console.log('Storing embeddings in vector databases...');
-
-      for (let i = 0; i < sourceProps.length; i++) {
-        await this.sourceDB.insertManualVectors({
-          text: sourceProps[i].embeddingText,
-          embedding: sourceEmbeddings[i].values,
-          metadata: sourceProps[i]
-        });
+        return {
+          sourceProperties: sourceProps,
+          targetProperties: targetProps,
+          cached: true
+        };
       }
 
-      for (let i = 0; i < targetProps.length; i++) {
-        await this.targetDB.insertManualVectors({
-          text: targetProps[i].embeddingText,
-          embedding: targetEmbeddings[i].values,
-          metadata: targetProps[i]
+      // Generate embeddings only if not cached
+      let sourceEmbeddings, targetEmbeddings;
+
+      if (!sourceCacheValid) {
+        console.log('Generating source embeddings...');
+        sourceEmbeddings = await this.generateEmbeddings(sourceProps, {
+          ...options,
+          onProgress: (progress) => {
+            if (options.onProgress) {
+              options.onProgress({
+                phase: 'source',
+                ...progress
+              });
+            }
+          }
         });
+
+        // Clear and store new source embeddings
+        console.log('Storing source embeddings in vector database...');
+        for (let i = 0; i < sourceProps.length; i++) {
+          await this.sourceDB.insertManualVectors({
+            text: sourceProps[i].embeddingText,
+            embedding: sourceEmbeddings[i].values,
+            metadata: sourceProps[i]
+          });
+        }
+
+        // Update source metadata
+        this.schemaMetadata.source = {
+          hash: this.getSchemaHash(sourceSchema),
+          timestamp: new Date().toISOString(),
+          propertyCount: sourceProps.length
+        };
+      } else {
+        console.log('Source embeddings cached, skipping generation');
       }
 
-      console.log('Embeddings stored successfully');
+      if (!targetCacheValid) {
+        console.log('Generating target embeddings...');
+        targetEmbeddings = await this.generateEmbeddings(targetProps, {
+          ...options,
+          onProgress: (progress) => {
+            if (options.onProgress) {
+              options.onProgress({
+                phase: 'target',
+                ...progress
+              });
+            }
+          }
+        });
+
+        // Clear and store new target embeddings
+        console.log('Storing target embeddings in vector database...');
+        for (let i = 0; i < targetProps.length; i++) {
+          await this.targetDB.insertManualVectors({
+            text: targetProps[i].embeddingText,
+            embedding: targetEmbeddings[i].values,
+            metadata: targetProps[i]
+          });
+        }
+
+        // Update target metadata
+        this.schemaMetadata.target = {
+          hash: this.getSchemaHash(targetSchema),
+          timestamp: new Date().toISOString(),
+          propertyCount: targetProps.length
+        };
+      } else {
+        console.log('Target embeddings cached, skipping generation');
+      }
+
+      // Save metadata to IndexedDB
+      await this.storageManager.saveVectorDB('metadata', this.schemaMetadata);
+      console.log('Schema metadata saved');
 
       return {
         sourceProperties: sourceProps,
@@ -657,6 +752,43 @@ Return your response as a JSON object with the following structure:
       return stored;
     }
     return [];
+  }
+
+  /**
+   * Clear vector cache and metadata
+   */
+  async clearVectorCache() {
+    try {
+      console.log('Clearing vector cache...');
+
+      // Reset metadata
+      this.schemaMetadata = {
+        source: null,
+        target: null
+      };
+
+      // Clear metadata from IndexedDB
+      await this.storageManager.saveVectorDB('metadata', this.schemaMetadata);
+
+      // Re-initialize databases (this will create fresh instances)
+      await this.initializeVectorDatabases();
+
+      console.log('Vector cache cleared successfully');
+      return true;
+    } catch (error) {
+      console.error('Failed to clear vector cache:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get cache information
+   */
+  getCacheInfo() {
+    return {
+      source: this.schemaMetadata.source || { status: 'No cache' },
+      target: this.schemaMetadata.target || { status: 'No cache' }
+    };
   }
 
   /**
