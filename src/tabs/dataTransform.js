@@ -83,11 +83,32 @@ export class DataTransform {
         console.log('No mappings found in storage, using examples');
         this.mappings = [
           {
-            id: 'example-1',
-            name: 'Example: Direct Mapping',
-            source: ['source_field'],
-            target: ['target_field'],
-            description: 'Example direct mapping - generate mappings in Vocabulary Mapper tab'
+            id: 'dmdeduc2_education',
+            name: 'DMDEDUC2 → EDUCATION',
+            source: ['DMDEDUC2'],
+            target: ['EDUCATION'],
+            description: 'Education level transformation'
+          },
+          {
+            id: 'bmxht_height',
+            name: 'BMXHT → HEIGHT',
+            source: ['BMXHT'],
+            target: ['HEIGHT'],
+            description: 'Height measurement transformation'
+          },
+          {
+            id: 'alq130_alc',
+            name: '{ ALQ120Q, ALQ120U, ALQ130 } → ALC',
+            source: ['ALQ120Q', 'ALQ120U', 'ALQ130'],
+            target: ['ALC'],
+            description: 'Alcohol consumption transformation'
+          },
+          {
+            id: 'smq_smoke',
+            name: '{ SMQ020, SMQ040 } → SMOKE',
+            source: ['SMQ020', 'SMQ040'],
+            target: ['SMOKE'],
+            description: 'Smoking status transformation'
           }
         ];
       }

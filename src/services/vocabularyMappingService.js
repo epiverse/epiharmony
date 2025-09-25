@@ -6,8 +6,7 @@ export class VocabularyMappingService {
   constructor() {
     this.storageManager = new StorageManager();
     this.geminiService = null;
-    this.sourceDB = null;
-    this.targetDB = null;
+    this.vectorDB = null;  // Single shared database instance
     this.mappings = [];
     this.candidateMappings = [];
     this.schemaMetadata = {
@@ -31,13 +30,9 @@ export class VocabularyMappingService {
 
   async initializeVectorDatabases() {
     try {
-      // Create separate databases for source and target schemas
-      this.sourceDB = new EntityDB({
-        vectorPath: 'embedding',  // Changed to match the field name we're using
-        model: null // We'll use manual vectors from Gemini
-      });
-
-      this.targetDB = new EntityDB({
+      // Create a single shared database instance to avoid duplicates
+      // EntityDB uses a single IndexedDB database regardless of instances
+      this.vectorDB = new EntityDB({
         vectorPath: 'embedding',  // Changed to match the field name we're using
         model: null // We'll use manual vectors from Gemini
       });
@@ -59,9 +54,8 @@ export class VocabularyMappingService {
    */
   async clearEntityDatabase() {
     try {
-      // First, close existing database connections
-      this.sourceDB = null;
-      this.targetDB = null;
+      // First, close existing database connection
+      this.vectorDB = null;
 
       // Wait a moment for connections to close
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -297,7 +291,7 @@ export class VocabularyMappingService {
         // Store new source embeddings with type marker
         console.log('Storing source embeddings in vector database...');
         for (let i = 0; i < sourceProps.length; i++) {
-          await this.sourceDB.insertManualVectors({
+          await this.vectorDB.insertManualVectors({
             text: sourceProps[i].embeddingText,
             embedding: sourceEmbeddings[i].values,
             metadata: sourceProps[i],
@@ -332,7 +326,7 @@ export class VocabularyMappingService {
         // Clear and store new target embeddings with type marker
         console.log('Storing target embeddings in vector database...');
         for (let i = 0; i < targetProps.length; i++) {
-          await this.targetDB.insertManualVectors({
+          await this.vectorDB.insertManualVectors({
             text: targetProps[i].embeddingText,
             embedding: targetEmbeddings[i].values,
             metadata: targetProps[i],
@@ -398,12 +392,12 @@ export class VocabularyMappingService {
 
     // For each source property, find top-k target properties
     for (const sourceProp of sourceProps) {
-      const sourceEmbedding = await this.sourceDB.query(sourceProp.embeddingText, 1);
+      const sourceEmbedding = await this.vectorDB.query(sourceProp.embeddingText, 1);
       if (sourceEmbedding && sourceEmbedding[0]) {
         const neighbors = await this.findNearestNeighbors(
           sourceProp,
           sourceEmbedding[0].embedding,
-          this.targetDB,
+          this.vectorDB,
           k
         );
 
@@ -431,12 +425,12 @@ export class VocabularyMappingService {
 
     // Also search from target to source to catch many-to-one mappings
     for (const targetProp of targetProps) {
-      const targetEmbedding = await this.targetDB.query(targetProp.embeddingText, 1);
+      const targetEmbedding = await this.vectorDB.query(targetProp.embeddingText, 1);
       if (targetEmbedding && targetEmbedding[0]) {
         const neighbors = await this.findNearestNeighbors(
           targetProp,
           targetEmbedding[0].embedding,
-          this.sourceDB,
+          this.vectorDB,
           k
         );
 
@@ -859,22 +853,18 @@ Return your response as a JSON object with the following structure:
         }
       });
 
-      // Re-initialize databases (don't require clearing since DB is shared)
-      console.log('Reinitializing source database...');
+      // Re-initialize database (don't require clearing since DB is shared)
+      console.log('Reinitializing vector database...');
 
-      // Just create new instances - they'll overwrite old data
-      this.sourceDB = new EntityDB({
-        vectorPath: 'embedding',  // Changed to match the field name we're using
-        model: null
-      });
-      this.targetDB = new EntityDB({
+      // Just create new instance - it'll overwrite old data
+      this.vectorDB = new EntityDB({
         vectorPath: 'embedding',  // Changed to match the field name we're using
         model: null
       });
 
       // Store each embedding with type marker
       for (let i = 0; i < sourceProps.length; i++) {
-        await this.sourceDB.insertManualVectors({
+        await this.vectorDB.insertManualVectors({
           text: sourceProps[i].embeddingText,
           embedding: sourceEmbeddings[i].values,
           metadata: sourceProps[i],
@@ -976,8 +966,8 @@ Return your response as a JSON object with the following structure:
       });
 
       // Verify we have embeddings in the database
-      if (!this.sourceDB) {
-        throw new Error('Source database not initialized');
+      if (!this.vectorDB) {
+        throw new Error('Vector database not initialized');
       }
 
       // Check if we actually have stored embeddings
@@ -999,10 +989,10 @@ Return your response as a JSON object with the following structure:
         throw new Error('Failed to generate target embedding');
       }
 
-      // Query the source database for similar concepts
+      // Query the vector database for similar concepts
       let results = [];
       try {
-        results = await this.sourceDB.queryManualVectors(
+        results = await this.vectorDB.queryManualVectors(
           targetEmbedding.values,
           { limit: Math.min(k * 3, 100) } // Get extra results to account for filtering/deduplication
         );
@@ -1027,7 +1017,7 @@ Return your response as a JSON object with the following structure:
         await this.embedSourceSchema(sourceSchema, options);
 
         // Try query again
-        results = await this.sourceDB.queryManualVectors(
+        results = await this.vectorDB.queryManualVectors(
           targetEmbedding.values,
           { limit: Math.min(k * 3, 100) } // Get extra results to account for filtering/deduplication
         );
@@ -1116,17 +1106,17 @@ Return your response as a JSON object with the following structure:
    * Get the default prompt for mapping analysis
    */
   getDefaultPrompt() {
-    return `You are a data harmonization expert focused on finding the MINIMAL SUFFICIENT mapping to derive the target property.
+    return `You are an expert in epidemiology and data harmonization. Your goal is to find the MINIMAL SUFFICIENT mapping of source concepts needed to infer or derive the target property (or properties).
 
 CRITICAL PRINCIPLES:
 1. PARSIMONY: Use the FEWEST source properties necessary - fewer is better
-2. NECESSITY TEST: For each property ask "Can I correctly populate the target WITHOUT this?"
+2. NECESSITY TEST: For each property ask "Can I correctly infer the target WITHOUT this?"
 3. SUFFICIENCY TEST: "Do these properties provide ALL required information?"
 4. REDUNDANCY CHECK: Exclude properties that duplicate information already captured
 
 REASONING APPROACH:
 - Start with the single most essential property
-- Only add more if the target CANNOT be correctly derived without them
+- Only add more if the target CANNOT be accurately and reliably derived without them
 - For each candidate, explicitly reason: "Is this NECESSARY or just nice-to-have?"
 - Justify why excluded properties are NOT needed
 - If multiple properties seem related, determine if they're truly ALL required
@@ -1142,7 +1132,7 @@ RESPONSE FORMAT (use === markers):
 [Explain what information would be missing with each option]
 
 === RECOMMENDATION ===
-MAPPING_TYPE: [one-to-one, many-to-one, one-to-many, or many-to-many]
+MAPPING_TYPE: [one-to-one, many-to-one, or one-to-many]
 SOURCE_PROPERTIES: [Comma-separated list of ONLY necessary properties]
 TARGET_PROPERTIES: [Usually just the target property name]
 CONFIDENCE: [High, Medium, or Low]
