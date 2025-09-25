@@ -102,6 +102,8 @@ export class Workspace {
     const vocabularyMapperTab = document.getElementById('vocabulary-mapper-tab');
     if (vocabularyMapperTab) {
       this.tabs['vocabulary-mapper'] = new VocabularyMapper(vocabularyMapperTab);
+      // Expose vocabularyMapper globally for inline event handlers
+      window.vocabularyMapper = this.tabs['vocabulary-mapper'];
     }
 
     const dataTransformTab = document.getElementById('data-transform-tab');

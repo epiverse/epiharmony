@@ -11,37 +11,8 @@ export class DataTransform {
     // View mode state (default to split view)
     this.viewMode = localStorage.getItem('dataTransformViewMode') || 'split';
 
-    // Hardcoded mappings from Vocabulary Mapper
-    this.mappings = [
-      {
-        id: 'dmdeduc2_education',
-        name: 'DMDEDUC2 → EDUCATION',
-        source: ['DMDEDUC2'],
-        target: ['EDUCATION'],
-        description: 'Education level transformation'
-      },
-      {
-        id: 'bmxht_height',
-        name: 'BMXHT → HEIGHT',
-        source: ['BMXHT'],
-        target: ['HEIGHT'],
-        description: 'Height measurement transformation'
-      },
-      {
-        id: 'alq130_alc',
-        name: 'ALQ130 → ALC',
-        source: ['ALQ130'],
-        target: ['ALC'],
-        description: 'Alcohol consumption transformation'
-      },
-      {
-        id: 'smq_smoke',
-        name: '{ SMQ020, SMQ040 } → SMOKE',
-        source: ['SMQ020', 'SMQ040'],
-        target: ['SMOKE'],
-        description: 'Smoking status transformation'
-      }
-    ];
+    // Mappings will be loaded from storage or from Vocabulary Mapper
+    this.mappings = [];
 
     this.currentMapping = null;
     this.currentLanguage = 'javascript';
@@ -65,10 +36,12 @@ export class DataTransform {
   async init() {
     await this.loadData();
     await this.loadSchemas();
+    await this.loadMappings();
     this.initWorkers();
     this.render();
     await this.initializeComponents();
     this.attachEventListeners();
+    this.setupMappingListener();
   }
 
   async loadData() {
@@ -95,6 +68,85 @@ export class DataTransform {
     } catch (error) {
       console.error('Failed to load schemas:', error);
     }
+  }
+
+  async loadMappings() {
+    try {
+      // Try to load mappings from storage
+      const storedMappings = await this.storage.getMappings();
+
+      if (storedMappings && storedMappings.length > 0) {
+        this.mappings = storedMappings;
+        console.log(`Loaded ${this.mappings.length} mappings from storage`);
+      } else {
+        // If no mappings in storage, provide default examples
+        console.log('No mappings found in storage, using examples');
+        this.mappings = [
+          {
+            id: 'example-1',
+            name: 'Example: Direct Mapping',
+            source: ['source_field'],
+            target: ['target_field'],
+            description: 'Example direct mapping - generate mappings in Vocabulary Mapper tab'
+          }
+        ];
+      }
+    } catch (error) {
+      console.error('Failed to load mappings:', error);
+      this.mappings = [];
+    }
+  }
+
+  setupMappingListener() {
+    // Listen for mappings updates from Vocabulary Mapper
+    window.addEventListener('mappings-updated', async (event) => {
+      const { mappings } = event.detail;
+
+      if (mappings && mappings.length > 0) {
+        this.mappings = mappings;
+        console.log(`Received ${mappings.length} mappings from Vocabulary Mapper`);
+
+        // Update the mapping selector
+        this.updateMappingSelector();
+
+        // Reset current mapping selection
+        this.currentMapping = null;
+
+        // Notify user
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg z-50';
+        notification.innerHTML = `
+          <div class="flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span>Received ${mappings.length} mappings from Vocabulary Mapper</span>
+          </div>
+        `;
+        document.body.appendChild(notification);
+
+        // Remove notification after 3 seconds
+        setTimeout(() => {
+          notification.remove();
+        }, 3000);
+      }
+    });
+  }
+
+  updateMappingSelector() {
+    const selector = document.getElementById('mapping-selector');
+    if (!selector) return;
+
+    // Update options
+    selector.innerHTML = `
+      <option value="">Select a mapping...</option>
+      ${this.mappings.map(m => `
+        <option value="${m.id}">${m.name}</option>
+      `).join('')}
+    `;
+
+    // Reset selection
+    selector.value = '';
   }
 
   initWorkers() {
@@ -1003,6 +1055,10 @@ transform <- function(row) {
   async refresh() {
     await this.loadData();
     await this.loadSchemas();
+    await this.loadMappings();
+
+    // Update mapping selector with new mappings
+    this.updateMappingSelector();
 
     // Update AI Assistant schemas
     if (this.aiAssistant) {

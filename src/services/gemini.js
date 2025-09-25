@@ -35,7 +35,7 @@ export class GeminiService {
       throw new Error('API key not set');
     }
 
-try {
+    try {
       // Test with a simple generation request
       const response = await this.genAI.models.generateContent({
         model: 'gemini-2.5-flash',

@@ -80,6 +80,21 @@ export class StorageManager {
     return await this.db.get('config', 'aiConfig');
   }
 
+  async saveCustomPrompt(prompt) {
+    await this.ensureInit();
+    await this.db.put('config', prompt, 'customPrompt');
+  }
+
+  async getCustomPrompt() {
+    await this.ensureInit();
+    return await this.db.get('config', 'customPrompt');
+  }
+
+  async clearCustomPrompt() {
+    await this.ensureInit();
+    await this.db.delete('config', 'customPrompt');
+  }
+
   async saveVectorDB(type, data) {
     await this.ensureInit();
     await this.db.put('vectorDB', data, type);
@@ -183,5 +198,24 @@ export class StorageManager {
   async getAIAssistantSettings() {
     await this.ensureInit();
     return await this.db.get('config', 'aiAssistantSettings');
+  }
+
+  async saveMappings(mappings) {
+    await this.ensureInit();
+    await this.db.put('config', mappings, 'vocabularyMappings');
+  }
+
+  async getMappings() {
+    await this.ensureInit();
+    return await this.db.get('config', 'vocabularyMappings');
+  }
+
+  async clearMappings() {
+    await this.ensureInit();
+    await this.db.delete('config', 'vocabularyMappings');
+  }
+
+  async getApiKey() {
+    return await this.getAPIKey();
   }
 }
