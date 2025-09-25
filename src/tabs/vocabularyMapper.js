@@ -40,8 +40,10 @@ export class VocabularyMapper {
               title="Side-by-side view"
             >
               <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4H5a1 1 0 00-1 1v14a1 1 0 001 1h4m6-20h4a1 1 0 011 1v14a1 1 0 01-1 1h-4m-6-20v20"></path>
-              </svg>
+                  <rect x="4" y="4" width="7" height="16" rx="1"></rect>
+                  <rect x="13" y="4" width="7" height="16" rx="1"></rect>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16"></path>
+                </svg>
               Split
             </button>
             <button
