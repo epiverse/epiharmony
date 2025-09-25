@@ -8,6 +8,9 @@ export class DataTransform {
     this.container = container;
     this.storage = new StorageManager();
 
+    // View mode state (default to split view)
+    this.viewMode = localStorage.getItem('dataTransformViewMode') || 'split';
+
     // Hardcoded mappings from Vocabulary Mapper
     this.mappings = [
       {
@@ -118,26 +121,88 @@ export class DataTransform {
   }
 
   render() {
+    const gridClass = this.viewMode === 'split' ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1';
+
     this.container.innerHTML = `
       <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-2xl font-semibold mb-4">Data Transform</h2>
-        <p class="text-gray-600 mb-6">Generate and apply transformation code to harmonize your data.</p>
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <h2 class="text-2xl font-semibold">Data Transform</h2>
+            <p class="text-gray-600 mt-1">Generate and apply transformation code to harmonize your data.</p>
+          </div>
 
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <!-- Left Column: Code Editor -->
+          <!-- View Mode Toggle -->
+          <div class="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+            <button
+              id="split-view-btn"
+              class="view-toggle-btn ${this.viewMode === 'split' ? 'active' : ''}"
+              title="Side-by-side view"
+            >
+              <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <rect x="4" y="4" width="7" height="16" rx="1"></rect>
+                  <rect x="13" y="4" width="7" height="16" rx="1"></rect>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16"></path>
+              </svg>
+              Split
+            </button>
+            <button
+              id="stacked-view-btn"
+              class="view-toggle-btn ${this.viewMode === 'stacked' ? 'active' : ''}"
+              title="Stacked view"
+            >
+              <svg class="w-4 h-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+              </svg>
+              Stacked
+            </button>
+          </div>
+        </div>
+
+        <!-- Mapping Selector (moved to top) -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-2">Select Mapping</label>
+          <select id="mapping-selector" class="input-field">
+            <option value="">Select a mapping...</option>
+            ${this.mappings.map(m => `
+              <option value="${m.id}">${m.name}</option>
+            `).join('')}
+          </select>
+        </div>
+
+        <div class="grid ${gridClass} gap-6 transition-all duration-300">
+          ${this.viewMode === 'stacked' ? `
+          <!-- Stacked View: Data Preview First -->
           <div class="space-y-4">
-            <!-- Mapping Selector -->
-            <div>
-              <label class="block text-sm font-medium mb-2">Select Mapping</label>
-              <select id="mapping-selector" class="input-field">
-                <option value="">Select a mapping...</option>
-                ${this.mappings.map(m => `
-                  <option value="${m.id}">${m.name}</option>
-                `).join('')}
-              </select>
-            </div>
 
-            <!-- Code Editor -->
+            <div class="border rounded-lg">
+              <div class="bg-gray-100 px-4 py-2 border-b flex justify-between items-center">
+                <span class="font-medium">Data Preview</span>
+                <div class="flex items-center space-x-2">
+                  <button id="toggle-columns" class="text-sm px-2 py-1 bg-white border rounded hover:bg-gray-50 hidden">
+                    Show All Columns
+                  </button>
+                  <button id="expand-preview-btn" class="text-sm text-amber-600 hover:text-amber-700">
+                    <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+                    </svg>
+                    Expand
+                  </button>
+                  <span id="data-status" class="text-sm text-gray-600"></span>
+                </div>
+              </div>
+              <div id="data-preview-container" class="${this.viewMode === 'split' ? 'h-[528px]' : 'h-96'}">
+                ${this.sourceData.length === 0 ?
+                  '<div class="p-4 text-gray-500">No data loaded. Upload source data in the configuration panel to see a preview.</div>' :
+                  '<div class="ag-theme-quartz h-full"></div>'
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+          ` : ''}
+          <!-- Code Editor and Console -->
+          <div class="space-y-4">
             <div class="border rounded-lg">
               <div class="bg-gray-100 px-4 py-2 border-b flex justify-between items-center">
                 <span class="font-medium">Code Editor</span>
@@ -154,10 +219,9 @@ export class DataTransform {
                   </button>
                 </div>
               </div>
-              <div id="code-editor-container" class="h-96 overflow-auto"></div>
+              <div id="code-editor-container" class="${this.viewMode === 'split' ? 'h-96' : 'h-80'} overflow-auto"></div>
             </div>
 
-            <!-- Console -->
             <div class="border rounded-lg">
               <div class="bg-gray-100 px-4 py-2 border-b flex justify-between items-center">
                 <span class="font-medium">Console Output</span>
@@ -168,7 +232,6 @@ export class DataTransform {
               </div>
             </div>
 
-            <!-- Action Buttons -->
             <div class="flex space-x-2">
               <button id="run-code" class="btn-primary flex-1">Run Code</button>
               <button id="apply-transform" class="btn-secondary flex-1">Apply Transform</button>
@@ -176,7 +239,8 @@ export class DataTransform {
             </div>
           </div>
 
-          <!-- Right Column: Data Preview -->
+          ${this.viewMode === 'split' ? `
+          <!-- Split View: Data Preview on Right -->
           <div class="space-y-4">
             <div class="border rounded-lg">
               <div class="bg-gray-100 px-4 py-2 border-b flex justify-between items-center">
@@ -185,10 +249,16 @@ export class DataTransform {
                   <button id="toggle-columns" class="text-sm px-2 py-1 bg-white border rounded hover:bg-gray-50 hidden">
                     Show All Columns
                   </button>
+                  <button id="expand-preview-btn" class="text-sm text-amber-600 hover:text-amber-700">
+                    <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+                    </svg>
+                    Expand
+                  </button>
                   <span id="data-status" class="text-sm text-gray-600"></span>
                 </div>
               </div>
-              <div id="data-preview-container" class="h-[600px]">
+              <div id="data-preview-container" class="h-[528px]">
                 ${this.sourceData.length === 0 ?
                   '<div class="p-4 text-gray-500">No data loaded. Upload source data in the configuration panel to see a preview.</div>' :
                   '<div class="ag-theme-quartz h-full"></div>'
@@ -196,13 +266,14 @@ export class DataTransform {
               </div>
             </div>
           </div>
+          ` : ''}
         </div>
 
         <!-- AI Chat Section -->
         <div id="ai-assistant-container" class="mt-6"></div>
       </div>
 
-      <!-- Fullscreen Modal -->
+      <!-- Fullscreen Modal for Code Editor -->
       <div id="fullscreen-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50">
         <div class="bg-white m-8 rounded-lg shadow-xl h-[calc(100vh-4rem)]">
           <div class="flex justify-between items-center p-4 border-b">
@@ -214,6 +285,21 @@ export class DataTransform {
             </button>
           </div>
           <div id="fullscreen-editor-container" class="h-[calc(100%-5rem)] overflow-auto"></div>
+        </div>
+      </div>
+
+      <!-- Fullscreen Modal for Data Preview -->
+      <div id="preview-fullscreen-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50">
+        <div class="bg-white m-8 rounded-lg shadow-xl h-[calc(100vh-4rem)]">
+          <div class="flex justify-between items-center p-4 border-b">
+            <h3 class="font-semibold">Data Preview - Fullscreen</h3>
+            <button id="close-preview-fullscreen" class="text-gray-500 hover:text-gray-700">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+          <div id="fullscreen-preview-container" class="h-[calc(100%-5rem)] overflow-auto ag-theme-quartz"></div>
         </div>
       </div>
     `;
@@ -278,6 +364,18 @@ export class DataTransform {
   }
 
   attachEventListeners() {
+    // View toggle buttons
+    const splitBtn = document.getElementById('split-view-btn');
+    const stackedBtn = document.getElementById('stacked-view-btn');
+
+    if (splitBtn) {
+      splitBtn.addEventListener('click', () => this.setViewMode('split'));
+    }
+
+    if (stackedBtn) {
+      stackedBtn.addEventListener('click', () => this.setViewMode('stacked'));
+    }
+
     // Mapping selector
     const mappingSelector = document.getElementById('mapping-selector');
     mappingSelector?.addEventListener('change', (e) => {
@@ -298,16 +396,28 @@ export class DataTransform {
       }
     });
 
-    // Fullscreen button
+    // Fullscreen button for code editor
     const fullscreenBtn = document.getElementById('fullscreen-btn');
     fullscreenBtn?.addEventListener('click', () => {
       this.toggleFullscreen(true);
     });
 
-    // Close fullscreen
+    // Close fullscreen for code editor
     const closeFullscreen = document.getElementById('close-fullscreen');
     closeFullscreen?.addEventListener('click', () => {
       this.toggleFullscreen(false);
+    });
+
+    // Expand preview button
+    const expandPreviewBtn = document.getElementById('expand-preview-btn');
+    expandPreviewBtn?.addEventListener('click', () => {
+      this.togglePreviewFullscreen(true);
+    });
+
+    // Close preview fullscreen
+    const closePreviewFullscreen = document.getElementById('close-preview-fullscreen');
+    closePreviewFullscreen?.addEventListener('click', () => {
+      this.togglePreviewFullscreen(false);
     });
 
     // Clear console
@@ -725,6 +835,47 @@ transform <- function(row) {
       // Move editor back to normal container
       if (this.codeEditor?.view) {
         normalContainer.appendChild(this.codeEditor.view.dom);
+      }
+    }
+  }
+
+  setViewMode(mode) {
+    if (this.viewMode === mode) return;
+
+    this.viewMode = mode;
+    localStorage.setItem('dataTransformViewMode', mode);
+
+    // Re-render to apply new layout
+    this.render();
+    this.initializeComponents();
+    this.attachEventListeners();
+  }
+
+  togglePreviewFullscreen(show) {
+    const modal = document.getElementById('preview-fullscreen-modal');
+    const fullscreenContainer = document.getElementById('fullscreen-preview-container');
+    const normalContainer = document.querySelector('#data-preview-container .ag-theme-quartz');
+
+    if (!modal || !fullscreenContainer) return;
+
+    if (show) {
+      modal.classList.remove('hidden');
+
+      // Create a new grid instance in fullscreen container
+      if (this.dataGrid) {
+        const tempGrid = new DataGrid(fullscreenContainer, {
+          height: '100%'
+        });
+        tempGrid.init(this.getDisplayData(), null, this.getHighlightColumns());
+        this.fullscreenGrid = tempGrid;
+      }
+    } else {
+      modal.classList.add('hidden');
+
+      // Destroy the fullscreen grid
+      if (this.fullscreenGrid) {
+        this.fullscreenGrid.destroy();
+        this.fullscreenGrid = null;
       }
     }
   }

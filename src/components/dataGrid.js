@@ -54,6 +54,7 @@ export class DataGrid {
         sortable: true,
         filter: true,
         resizable: true,
+        minWidth: 100,
         tooltipValueGetter: (params) => this.getCellTooltip(params)
       },
       animateRows: true,
@@ -84,14 +85,32 @@ export class DataGrid {
       Object.keys(row).forEach(key => keys.add(key));
     });
 
-    // Create column definitions
-    return Array.from(keys).map(key => ({
-      field: key,
-      headerName: key,
-      cellClass: (params) => this.getCellClass(params),
-      cellRenderer: (params) => this.cellRenderer(params),
-      headerClass: this.highlightColumns.includes(key) ? 'highlight-column-header' : ''
-    }));
+    // Create column definitions with auto width
+    return Array.from(keys).map(key => {
+      // Calculate column width based on header and content
+      const headerWidth = key.length * 10 + 50; // Estimate based on header text
+      let maxContentWidth = headerWidth;
+
+      // Sample first 50 rows to estimate content width
+      const sampleSize = Math.min(50, data.length);
+      for (let i = 0; i < sampleSize; i++) {
+        const value = data[i][key];
+        if (value) {
+          const valueWidth = String(value).length * 8 + 20; // Estimate based on content
+          maxContentWidth = Math.max(maxContentWidth, valueWidth);
+        }
+      }
+
+      return {
+        field: key,
+        headerName: key,
+        width: Math.min(Math.max(maxContentWidth, 100), 400), // Min 100, Max 400
+        cellClass: (params) => this.getCellClass(params),
+        cellRenderer: (params) => this.cellRenderer(params),
+        headerClass: this.highlightColumns.includes(key) ? 'highlight-column-header' : '',
+        headerTooltip: key // Show full column name on hover
+      };
+    });
   }
 
   createStatusColumn() {
@@ -287,8 +306,9 @@ export class DataGrid {
   }
 
   onGridReady(params) {
-    // Auto-size columns to fit content
-    params.api.sizeColumnsToFit();
+    // Don't auto-size columns to fit container - let them use their natural width
+    // This allows horizontal scrolling when columns overflow
+    // params.api.sizeColumnsToFit(); // Removed to allow horizontal scrolling
 
     // Emit custom event
     if (this.options.onReady) {
