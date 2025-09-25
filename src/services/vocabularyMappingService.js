@@ -23,6 +23,8 @@ export class VocabularyMappingService {
       this.geminiService = getGeminiService(apiKey);
     }
 
+    // Don't attempt cleanup on init - let the embedSchemas handle it when needed
+
     // Initialize vector databases
     await this.initializeVectorDatabases();
   }
@@ -31,12 +33,12 @@ export class VocabularyMappingService {
     try {
       // Create separate databases for source and target schemas
       this.sourceDB = new EntityDB({
-        vectorPath: 'epiharmony_source_vectors',
+        vectorPath: 'embedding',  // Changed to match the field name we're using
         model: null // We'll use manual vectors from Gemini
       });
 
       this.targetDB = new EntityDB({
-        vectorPath: 'epiharmony_target_vectors',
+        vectorPath: 'embedding',  // Changed to match the field name we're using
         model: null // We'll use manual vectors from Gemini
       });
 
@@ -49,6 +51,54 @@ export class VocabularyMappingService {
       console.log('Vector databases initialized');
     } catch (error) {
       console.error('Failed to initialize vector databases:', error);
+    }
+  }
+
+  /**
+   * Clear the EntityDB IndexedDB database completely
+   */
+  async clearEntityDatabase() {
+    try {
+      // First, close existing database connections
+      this.sourceDB = null;
+      this.targetDB = null;
+
+      // Wait a moment for connections to close
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Delete the entire EntityDB database to remove all vectors
+      const deleteSuccess = await new Promise((resolve) => {
+        const deleteReq = indexedDB.deleteDatabase('EntityDB');
+
+        deleteReq.onsuccess = () => {
+          console.log('EntityDB database cleared successfully');
+          resolve(true);
+        };
+
+        deleteReq.onerror = () => {
+          console.error('Failed to clear EntityDB database:', deleteReq.error);
+          resolve(false);
+        };
+
+        deleteReq.onblocked = () => {
+          console.warn('EntityDB database delete blocked - close other tabs using this app');
+          // Resolve as false since we couldn't delete
+          resolve(false);
+        };
+      });
+
+      if (!deleteSuccess) {
+        console.error('Could not clear EntityDB - database may be in use');
+        return false;
+      }
+
+      // Wait a bit for the database to be fully deleted
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      return true;
+    } catch (error) {
+      console.error('Error clearing EntityDB database:', error);
+      return false;
     }
   }
 
@@ -79,16 +129,14 @@ export class VocabularyMappingService {
       return false;
     }
 
-    // Check if the database actually has data
-    try {
-      const db = type === 'source' ? this.sourceDB : this.targetDB;
-      // Try to query for a test embedding to verify data exists
-      const testResult = await db.queryManualVectors([0], 1);
-      return true; // Cache is valid if we can query
-    } catch (error) {
-      console.log(`No cached embeddings found for ${type} schema`);
+    // Check if we have the expected number of properties stored
+    if (!metadata.propertyCount || metadata.propertyCount === 0) {
       return false;
     }
+
+    // The metadata indicates we have stored embeddings for this schema
+    console.log(`Found cached embeddings for ${type} schema (${metadata.propertyCount} properties, cached ${metadata.timestamp})`);
+    return true;
   }
 
   /**
@@ -218,6 +266,20 @@ export class VocabularyMappingService {
       // Generate embeddings only if not cached
       let sourceEmbeddings, targetEmbeddings;
 
+      // If either cache is invalid, we need to clear and regenerate everything
+      // because EntityDB uses a single shared database
+      if (!sourceCacheValid || !targetCacheValid) {
+        console.log('Cache invalid, attempting to clear old vector database...');
+        const clearSuccess = await this.clearEntityDatabase();
+
+        if (!clearSuccess) {
+          console.warn('Could not clear database - will overwrite existing data');
+        }
+
+        // Re-initialize databases (whether clear succeeded or not)
+        await this.initializeVectorDatabases();
+      }
+
       if (!sourceCacheValid) {
         console.log('Generating source embeddings...');
         sourceEmbeddings = await this.generateEmbeddings(sourceProps, {
@@ -232,13 +294,14 @@ export class VocabularyMappingService {
           }
         });
 
-        // Clear and store new source embeddings
+        // Store new source embeddings with type marker
         console.log('Storing source embeddings in vector database...');
         for (let i = 0; i < sourceProps.length; i++) {
           await this.sourceDB.insertManualVectors({
             text: sourceProps[i].embeddingText,
             embedding: sourceEmbeddings[i].values,
-            metadata: sourceProps[i]
+            metadata: sourceProps[i],
+            type: 'source'  // Mark as source embedding
           });
         }
 
@@ -266,13 +329,14 @@ export class VocabularyMappingService {
           }
         });
 
-        // Clear and store new target embeddings
+        // Clear and store new target embeddings with type marker
         console.log('Storing target embeddings in vector database...');
         for (let i = 0; i < targetProps.length; i++) {
           await this.targetDB.insertManualVectors({
             text: targetProps[i].embeddingText,
             embedding: targetEmbeddings[i].values,
-            metadata: targetProps[i]
+            metadata: targetProps[i],
+            type: 'target'  // Mark as target embedding
           });
         }
 
@@ -755,6 +819,91 @@ Return your response as a JSON object with the following structure:
   }
 
   /**
+   * Embed only the source schema
+   */
+  async embedSourceSchema(sourceSchema, options = {}) {
+    try {
+      // Extract properties from source schema
+      const sourceProps = this.extractSchemaProperties(sourceSchema);
+
+      console.log(`Extracted ${sourceProps.length} source properties`);
+
+      // Check if we have valid cached embeddings
+      const sourceCacheValid = await this.isCacheValid('source', sourceSchema);
+
+      if (sourceCacheValid) {
+        console.log('Using cached source embeddings - no regeneration needed');
+        if (options.onProgress) {
+          options.onProgress({
+            phase: 'cached',
+            message: 'Using cached embeddings'
+          });
+        }
+        return {
+          sourceProperties: sourceProps,
+          cached: true
+        };
+      }
+
+      // Generate embeddings for source
+      console.log('Generating source embeddings...');
+      const sourceEmbeddings = await this.generateEmbeddings(sourceProps, {
+        ...options,
+        onProgress: (progress) => {
+          if (options.onProgress) {
+            options.onProgress({
+              phase: 'source',
+              ...progress
+            });
+          }
+        }
+      });
+
+      // Re-initialize databases (don't require clearing since DB is shared)
+      console.log('Reinitializing source database...');
+
+      // Just create new instances - they'll overwrite old data
+      this.sourceDB = new EntityDB({
+        vectorPath: 'embedding',  // Changed to match the field name we're using
+        model: null
+      });
+      this.targetDB = new EntityDB({
+        vectorPath: 'embedding',  // Changed to match the field name we're using
+        model: null
+      });
+
+      // Store each embedding with type marker
+      for (let i = 0; i < sourceProps.length; i++) {
+        await this.sourceDB.insertManualVectors({
+          text: sourceProps[i].embeddingText,
+          embedding: sourceEmbeddings[i].values,
+          metadata: sourceProps[i],
+          type: 'source'  // Mark as source embedding
+        });
+      }
+
+      // Update source metadata
+      this.schemaMetadata.source = {
+        hash: this.getSchemaHash(sourceSchema),
+        timestamp: new Date().toISOString(),
+        propertyCount: sourceProps.length
+      };
+
+      // Save metadata to IndexedDB
+      await this.storageManager.saveVectorDB('metadata', this.schemaMetadata);
+      console.log('Source schema embeddings saved');
+
+      return {
+        sourceProperties: sourceProps,
+        cached: false
+      };
+    } catch (error) {
+      console.error('Failed to embed source schema:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Clear vector cache and metadata
    */
   async clearVectorCache() {
@@ -769,6 +918,13 @@ Return your response as a JSON object with the following structure:
 
       // Clear metadata from IndexedDB
       await this.storageManager.saveVectorDB('metadata', this.schemaMetadata);
+
+      // Clear the entire EntityDB database to remove all vectors
+      const clearSuccess = await this.clearEntityDatabase();
+      if (!clearSuccess) {
+        console.warn('Could not clear EntityDB - database may be in use');
+        // Still try to reinitialize to get fresh instances
+      }
 
       // Re-initialize databases (this will create fresh instances)
       await this.initializeVectorDatabases();
@@ -809,8 +965,28 @@ Return your response as a JSON object with the following structure:
     }
 
     try {
-      // Extract source properties
-      const sourceProps = this.extractSchemaProperties(sourceSchema);
+      // First, ensure source schema is embedded and cached
+      await this.embedSourceSchema(sourceSchema, {
+        ...options,
+        onProgress: (progress) => {
+          if (options.onProgress) {
+            options.onProgress(progress);
+          }
+        }
+      });
+
+      // Verify we have embeddings in the database
+      if (!this.sourceDB) {
+        throw new Error('Source database not initialized');
+      }
+
+      // Check if we actually have stored embeddings
+      const metadata = this.schemaMetadata.source;
+      if (!metadata || metadata.propertyCount === 0) {
+        throw new Error('No source embeddings available. Please try regenerating.');
+      }
+
+      console.log(`Querying ${metadata.propertyCount} source embeddings for similarities...`);
 
       // Generate embedding for target property
       const targetEmbedding = await this.geminiService.generateEmbedding(
@@ -818,30 +994,88 @@ Return your response as a JSON object with the following structure:
         { outputDimension: options.dimension || 768 }
       );
 
-      // Generate embeddings for all source properties
-      const sourceEmbeddings = await this.generateEmbeddings(sourceProps, {
-        dimension: options.dimension || 768,
-        onProgress: options.onProgress
-      });
-
-      // Calculate similarities
-      const similarities = [];
-      for (let i = 0; i < sourceProps.length; i++) {
-        const similarity = this.cosineSimilarity(
-          targetEmbedding.values,
-          sourceEmbeddings[i].values
-        );
-
-        similarities.push({
-          property: sourceProps[i],
-          similarity: similarity,
-          score: Math.round(similarity * 100) // Convert to percentage
-        });
+      // Validate the target embedding
+      if (!targetEmbedding || !targetEmbedding.values || targetEmbedding.values.length === 0) {
+        throw new Error('Failed to generate target embedding');
       }
+
+      // Query the source database for similar concepts
+      let results = [];
+      try {
+        results = await this.sourceDB.queryManualVectors(
+          targetEmbedding.values,
+          { limit: Math.min(k * 3, 100) } // Get extra results to account for filtering/deduplication
+        );
+      } catch (queryError) {
+        console.error('Error querying vector database:', queryError);
+        // If query fails, it might mean the database is empty or corrupted
+        // Try to regenerate embeddings
+        console.log('Attempting to regenerate source embeddings...');
+
+        // Clear cache and regenerate
+        this.schemaMetadata.source = null;
+        await this.storageManager.saveVectorDB('metadata', this.schemaMetadata);
+
+        // Try to clear but don't fail if blocked
+        const clearSuccess = await this.clearEntityDatabase();
+        if (!clearSuccess) {
+          console.warn('Could not clear database during recovery - will overwrite');
+        }
+
+        // Reinitialize and regenerate
+        await this.initializeVectorDatabases();
+        await this.embedSourceSchema(sourceSchema, options);
+
+        // Try query again
+        results = await this.sourceDB.queryManualVectors(
+          targetEmbedding.values,
+          { limit: Math.min(k * 3, 100) } // Get extra results to account for filtering/deduplication
+        );
+      }
+
+      // Validate results
+      if (!Array.isArray(results)) {
+        console.warn('Unexpected query results format, using empty array');
+        results = [];
+      }
+
+      // Debug logging
+      console.log(`Raw query results: ${results.length} entries`);
+      console.log('Sample result:', results[0]);
+
+      // Filter for source type only (exclude entries without type or with wrong type)
+      const sourceResults = results.filter(result =>
+        result && result.metadata && result.type === 'source'
+      );
+
+      console.log(`After filtering for source type: ${sourceResults.length} entries`);
+
+      // Deduplicate by property path
+      const seenPaths = new Set();
+      const uniqueResults = [];
+
+      for (const result of sourceResults) {
+        const path = result.metadata.path || result.metadata.name;
+        if (!seenPaths.has(path)) {
+          seenPaths.add(path);
+          uniqueResults.push(result);
+        }
+      }
+
+      console.log(`After deduplication: ${uniqueResults.length} unique entries`);
+
+      // Convert to expected format
+      const similarities = uniqueResults.map(result => ({
+        property: result.metadata,
+        similarity: result.similarity || result.score || 0,
+        score: Math.round((result.similarity || result.score || 0) * 100)
+      }));
 
       // Sort by similarity and return top k
       similarities.sort((a, b) => b.similarity - a.similarity);
       const topK = similarities.slice(0, k);
+
+      console.log(`Returning top ${topK.length} candidates to LLM`);
 
       return {
         targetProperty,

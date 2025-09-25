@@ -118,6 +118,7 @@ export class VocabularyMapper {
             <div class="flex items-center justify-between mb-3">
               <h3 class="font-semibold">Mapping Progress</h3>
               <div class="flex items-center space-x-2">
+                <div id="embedding-cache-status"></div>
                 <button id="generate-mappings-btn" class="btn-primary">
                   <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
@@ -600,6 +601,96 @@ export class VocabularyMapper {
   async loadSchemas() {
     await this.loadSourceSchema();
     await this.loadTargetSchema();
+
+    // Precompute embeddings if both schemas are loaded
+    if (this.sourceProcessor && this.targetProcessor) {
+      await this.precomputeEmbeddings();
+    }
+  }
+
+  async precomputeEmbeddings() {
+    // Check if we have source schema and API key
+    const apiKey = await this.storageManager.getApiKey();
+    if (!apiKey) {
+      console.log('No API key configured, skipping embedding precomputation');
+      return;
+    }
+
+    if (!this.sourceProcessor?.resolvedSchema) {
+      console.log('Source schema not loaded, skipping embedding precomputation');
+      return;
+    }
+
+    try {
+      console.log('Checking if source embeddings need to be computed...');
+
+      // Check cache status for source schema only
+      const sourceCacheValid = await this.mappingService.isCacheValid('source', this.sourceProcessor.resolvedSchema);
+
+      if (sourceCacheValid) {
+        console.log('Source embeddings already cached, no computation needed');
+        this.showCacheStatus(true);
+        return;
+      }
+
+      // Clear the vector cache to ensure clean state
+      console.log('Clearing vector cache before computing new embeddings...');
+      await this.mappingService.clearVectorCache();
+
+      console.log('Computing source embeddings for faster mapping...');
+      this.showCacheStatus(false, 'Generating source embeddings...');
+
+      // Only compute source embeddings for "Find Related Concepts"
+      // Target embeddings will be computed when needed for full mapping generation
+      await this.mappingService.embedSourceSchema(
+        this.sourceProcessor.resolvedSchema,
+        {
+          dimension: 768,
+          onProgress: (progress) => {
+            if (progress.phase === 'cached') {
+              this.showCacheStatus(true);
+            } else {
+              const message = `Processing source schema: ${progress.processed}/${progress.total}`;
+              this.showCacheStatus(false, message);
+            }
+          }
+        }
+      );
+
+      console.log('Source embeddings computed and cached successfully');
+      this.showCacheStatus(true);
+
+    } catch (error) {
+      console.error('Failed to precompute source embeddings:', error);
+      // Not critical - embeddings can be computed on-demand if needed
+    }
+  }
+
+  showCacheStatus(cached, message = null) {
+    // Update UI to show cache status
+    const statusEl = document.getElementById('embedding-cache-status');
+    if (statusEl) {
+      if (cached) {
+        statusEl.innerHTML = `
+          <span class="text-green-600 text-sm">
+            <svg class="inline-block w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            Embeddings cached
+          </span>`;
+      } else if (message) {
+        statusEl.innerHTML = `
+          <span class="text-amber-600 text-sm">
+            <svg class="inline-block w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            ${message}
+          </span>`;
+      } else {
+        statusEl.innerHTML = '';
+      }
+    }
   }
 
   async loadSourceSchema() {
