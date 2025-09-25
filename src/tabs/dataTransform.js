@@ -67,7 +67,7 @@ export class DataTransform {
     await this.loadSchemas();
     this.initWorkers();
     this.render();
-    this.initializeComponents();
+    await this.initializeComponents();
     this.attachEventListeners();
   }
 
@@ -173,7 +173,6 @@ export class DataTransform {
           ${this.viewMode === 'stacked' ? `
           <!-- Stacked View: Data Preview First -->
           <div class="space-y-4">
-
             <div class="border rounded-lg">
               <div class="bg-gray-100 px-4 py-2 border-b flex justify-between items-center">
                 <span class="font-medium">Data Preview</span>
@@ -190,7 +189,7 @@ export class DataTransform {
                   <span id="data-status" class="text-sm text-gray-600"></span>
                 </div>
               </div>
-              <div id="data-preview-container" class="${this.viewMode === 'split' ? 'h-[528px]' : 'h-96'}">
+              <div id="data-preview-container" class="h-96">
                 ${this.sourceData.length === 0 ?
                   '<div class="p-4 text-gray-500">No data loaded. Upload source data in the configuration panel to see a preview.</div>' :
                   '<div class="ag-theme-quartz h-full"></div>'
@@ -199,7 +198,6 @@ export class DataTransform {
             </div>
           </div>
 
-          <div class="space-y-4">
           ` : ''}
           <!-- Code Editor and Console -->
           <div class="space-y-4">
@@ -364,16 +362,47 @@ export class DataTransform {
   }
 
   attachEventListeners() {
-    // View toggle buttons
+    // View toggle buttons - use event delegation on parent container
+    const viewToggleContainer = this.container.querySelector('div.flex.items-center.space-x-2.bg-gray-100.rounded-lg.p-1');
+
+    // Also try to attach directly as a fallback
     const splitBtn = document.getElementById('split-view-btn');
     const stackedBtn = document.getElementById('stacked-view-btn');
 
-    if (splitBtn) {
-      splitBtn.addEventListener('click', () => this.setViewMode('split'));
-    }
+    if (viewToggleContainer) {
 
-    if (stackedBtn) {
-      stackedBtn.addEventListener('click', () => this.setViewMode('stacked'));
+      // Remove old listener if it exists
+      if (this.viewToggleHandler) {
+        viewToggleContainer.removeEventListener('click', this.viewToggleHandler);
+      }
+
+      // Create new handler
+      this.viewToggleHandler = async (e) => {
+        const button = e.target.closest('.view-toggle-btn');
+        if (!button) return;
+
+        if (button.id === 'split-view-btn') {
+          await this.setViewMode('split');
+        } else if (button.id === 'stacked-view-btn') {
+          await this.setViewMode('stacked');
+        }
+      };
+
+      // Attach the handler
+      viewToggleContainer.addEventListener('click', this.viewToggleHandler);
+    } else {
+      // Fallback: attach directly to buttons
+      if (splitBtn) {
+        splitBtn.onclick = async () => {
+          await this.setViewMode('split');
+        };
+      }
+
+      if (stackedBtn) {
+        stackedBtn.onclick = async () => {
+          await this.setViewMode('stacked');
+        };
+      }
     }
 
     // Mapping selector
@@ -839,16 +868,53 @@ transform <- function(row) {
     }
   }
 
-  setViewMode(mode) {
+  async setViewMode(mode) {
     if (this.viewMode === mode) return;
 
     this.viewMode = mode;
     localStorage.setItem('dataTransformViewMode', mode);
 
+    // Save current state before re-rendering
+    const currentCode = this.codeEditor?.getValue() || '';
+    const currentLanguage = this.currentLanguage;
+    const currentMapping = this.currentMapping;
+
+    // Destroy existing components to clean up
+    if (this.codeEditor) {
+      this.codeEditor.destroy();
+      this.codeEditor = null;
+    }
+    if (this.dataGrid) {
+      this.dataGrid.destroy();
+      this.dataGrid = null;
+    }
+
     // Re-render to apply new layout
     this.render();
-    this.initializeComponents();
-    this.attachEventListeners();
+
+    try {
+      // Re-initialize components with preserved state - wait for completion
+      await this.initializeComponents();
+
+      // Attach event listeners after components are ready
+      this.attachEventListeners();
+
+      // Restore state after re-initialization
+      if (this.codeEditor && currentCode) {
+        this.codeEditor.setValue(currentCode);
+      }
+      if (currentMapping) {
+        // Re-select the mapping without triggering change event
+        const mappingSelector = document.getElementById('mapping-selector');
+        if (mappingSelector) {
+          mappingSelector.value = currentMapping.id;
+        }
+        this.currentMapping = currentMapping;
+        this.selectMapping(currentMapping);
+      }
+    } catch (error) {
+      console.error('Error switching view mode:', error);
+    }
   }
 
   togglePreviewFullscreen(show) {
@@ -928,8 +994,10 @@ transform <- function(row) {
   }
 
   onActivate() {
-    console.log('Data Transform tab activated');
     this.refresh();
+    // Re-attach event listeners when tab is activated
+    // This ensures buttons work after switching tabs
+    this.attachEventListeners();
   }
 
   async refresh() {
