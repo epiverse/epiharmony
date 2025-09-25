@@ -192,8 +192,8 @@
     transition: background-color 0.2s ease !important;
   }
 
-  .ag-theme-quartz .bg-amber-50:hover {
+  /* Highlight transformed columns when row is hovered */
+  .ag-theme-quartz .ag-row-hover .bg-amber-50 {
     background-color: rgb(253, 230, 138) !important; /* amber-200 */
-    cursor: pointer;
   }
 }
