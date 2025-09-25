@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Transform Test</title>
+  <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body>
+  <div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-4">Data Transform Test</h1>
+
+    <div id="data-transform-container"></div>
+  </div>
+
+  <script type="module">
+    import { DataTransform } from '/src/tabs/dataTransform.js';
+    import { StorageManager } from '/src/core/storage.js';
+
+    // Create test data
+    const testData = [
+      {
+        SEQN: 1001,
+        DMDEDUC2: 4,
+        BMXHT: 175.2,
+        ALQ130: 2,
+        SMQ020: 1,
+        SMQ040: null
+      },
+      {
+        SEQN: 1002,
+        DMDEDUC2: 5,
+        BMXHT: 162.8,
+        ALQ130: 3,
+        SMQ020: 2,
+        SMQ040: 1
+      },
+      {
+        SEQN: 1003,
+        DMDEDUC2: 3,
+        BMXHT: 180.5,
+        ALQ130: 1,
+        SMQ020: 2,
+        SMQ040: 3
+      },
+      {
+        SEQN: 1004,
+        DMDEDUC2: 4,
+        BMXHT: 168.3,
+        ALQ130: 0,
+        SMQ020: 2,
+        SMQ040: 2
+      },
+      {
+        SEQN: 1005,
+        DMDEDUC2: 2,
+        BMXHT: 155.7,
+        ALQ130: 5,
+        SMQ020: 1,
+        SMQ040: null
+      }
+    ];
+
+    // Test schemas
+    const sourceSchema = {
+      properties: {
+        DMDEDUC2: {
+          type: ["integer", "null"],
+          enum: [1, 2, 3, 4, 5, 7, 9, null],
+          enumDescriptions: [
+            "Less than 9th grade",
+            "9-11th grade",
+            "High school graduate/GED or equivalent",
+            "Some college or AA degree",
+            "College graduate or above",
+            "Refused",
+            "Don't Know",
+            "Missing"
+          ],
+          description: "Education level - Adults 20+ What is the highest grade or level of school completed or the highest degree received?"
+        },
+        BMXHT: {
+          type: ["number", "null"],
+          minimum: 0,
+          maximum: 250,
+          description: "Standing Height (cm). Standing height in centimeters."
+        },
+        ALQ130: {
+          oneOf: [
+            {
+              type: "number",
+              minimum: 0,
+              maximum: 365
+            },
+            {
+              type: "null"
+            }
+          ],
+          description: "Avg # alcoholic drinks/day in past 12 mos"
+        },
+        SMQ020: {
+          type: ["integer", "null"],
+          enum: [1, 2, 7, 9, null],
+          enumDescriptions: ["Yes", "No", "Refused", "Don't know", "Missing"],
+          description: "Smoked at least 100 cigarettes in life"
+        },
+        SMQ040: {
+          type: ["integer", "null"],
+          enum: [1, 2, 3, 7, 9, null],
+          enumDescriptions: ["Every day", "Some days", "Not at all", "Refused", "Don't know", "Missing"],
+          description: "Do you now smoke cigarettes?"
+        }
+      }
+    };
+
+    const targetSchema = {
+      properties: {
+        EDUCATION: {
+          description: "Highest level of education",
+          type: ["integer", "null"],
+          enum: [1, 2, 3, null],
+          enumDescriptions: [
+            "High school or less",
+            "Some college",
+            "College graduate or higher"
+          ]
+        },
+        HEIGHT: {
+          description: "Height in inches; set missing if <48 or >84.",
+          oneOf: [
+            {
+              type: "number",
+              minimum: 48,
+              maximum: 84
+            },
+            {
+              type: "null"
+            }
+          ]
+        },
+        ALC: {
+          type: ["number", "null"],
+          description: "Alcohol intake (grams/day). Null if missing.",
+          minimum: 0
+        },
+        SMOKE: {
+          description: "Smoking status",
+          type: ["integer", "null"],
+          enum: [0, 1, 2, null],
+          enumDescriptions: [
+            "Never",
+            "Former",
+            "Current"
+          ]
+        }
+      }
+    };
+
+    // Initialize storage and save test data
+    const storage = new StorageManager();
+
+    async function setupTestData() {
+      // Save test data
+      await storage.saveSourceData(testData);
+
+      // Save schemas
+      await storage.saveSourceSchemas({
+        urls: ['test-source-schema.json'],
+        schemas: [sourceSchema],
+        mainSchema: 'test-source-schema.json',
+        resolvedSchema: sourceSchema
+      });
+
+      await storage.saveTargetSchemas({
+        urls: ['test-target-schema.json'],
+        schemas: [targetSchema],
+        mainSchema: 'test-target-schema.json',
+        resolvedSchema: targetSchema
+      });
+
+      // Save a test API key (you'll need to replace with your actual key)
+      const apiKey = prompt('Enter your Gemini API key (or cancel to skip AI features):');
+      if (apiKey) {
+        await storage.saveAPIKey(apiKey);
+      }
+
+      console.log('Test data setup complete');
+    }
+
+    async function initializeDataTransform() {
+      await setupTestData();
+
+      const container = document.getElementById('data-transform-container');
+      const dataTransform = new DataTransform(container);
+
+      // Make it available globally for testing
+      window.dataTransform = dataTransform;
+
+      console.log('DataTransform initialized');
+      console.log('Test data loaded:', testData);
+      console.log('Available in console as: window.dataTransform');
+    }
+
+    // Initialize when page loads
+    initializeDataTransform();
+  </script>
+</body>
+</html>

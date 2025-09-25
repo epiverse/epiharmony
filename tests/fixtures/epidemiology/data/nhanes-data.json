@@ -1,0 +1,92 @@
+[
+  {
+    "SEQN": 1,
+    "SDDSRVYR": 9,
+    "DMDEDUC2": 1,
+    "BMXHT": null,
+    "ALQ130": 14,
+    "SMQ020": 7,
+    "SMQ040": null
+  },
+  {
+    "SEQN": 2,
+    "SDDSRVYR": 9,
+    "DMDEDUC2": 5,
+    "BMXHT": 110.5,
+    "ALQ130": 2,
+    "SMQ020": 2,
+    "SMQ040": null
+  },
+  {
+    "SEQN": 3,
+    "SDDSRVYR": 9,
+    "DMDEDUC2": 4,
+    "BMXHT": 191.48,
+    "ALQ130": 3,
+    "SMQ020": 1,
+    "SMQ040": 9
+  },
+  {
+    "SEQN": 4,
+    "SDDSRVYR": 9,
+    "DMDEDUC2": 7,
+    "BMXHT": 90.17,
+    "ALQ130": 2,
+    "SMQ020": 7,
+    "SMQ040": null
+  },
+  {
+    "SEQN": 5,
+    "SDDSRVYR": 9,
+    "DMDEDUC2": 7,
+    "BMXHT": 158.19,
+    "ALQ130": 999,
+    "SMQ020": 9,
+    "SMQ040": null
+  },
+  {
+    "SEQN": 6,
+    "SDDSRVYR": 9,
+    "DMDEDUC2": 3,
+    "BMXHT": null,
+    "ALQ130": 4,
+    "SMQ020": 2,
+    "SMQ040": null
+  },
+  {
+    "SEQN": 7,
+    "SDDSRVYR": 9,
+    "DMDEDUC2": 9,
+    "BMXHT": null,
+    "ALQ130": 13,
+    "SMQ020": 2,
+    "SMQ040": null
+  },
+  {
+    "SEQN": 8,
+    "SDDSRVYR": 9,
+    "DMDEDUC2": 5,
+    "BMXHT": 177.95,
+    "ALQ130": 8,
+    "SMQ020": 1,
+    "SMQ040": 1
+  },
+  {
+    "SEQN": 9,
+    "SDDSRVYR": 9,
+    "DMDEDUC2": 1,
+    "BMXHT": 151.19,
+    "ALQ130": 4,
+    "SMQ020": 1,
+    "SMQ040": 1
+  },
+  {
+    "SEQN": 10,
+    "SDDSRVYR": 9,
+    "DMDEDUC2": 2,
+    "BMXHT": 125.17,
+    "ALQ130": 1,
+    "SMQ020": 1,
+    "SMQ040": 2
+  }
+]

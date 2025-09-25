@@ -6,7 +6,7 @@ export class GeminiService {
     this.genAI = apiKey ? new GoogleGenAI({ apiKey }) : null;
     this.models = {
       embedding: 'gemini-embedding-001',
-      chat: 'gemini-2.5-flash'
+      chat: 'gemini-2.5-flash-lite'
     };
     this.embeddingDimension = 3072; // Default to maximum
   }
@@ -253,6 +253,54 @@ try {
       return result.text;
     } catch (error) {
       throw new Error(`Content generation failed: ${error.message}`);
+    }
+  }
+
+  async generateContentStream(prompt, options = {}) {
+    if (!this.genAI) {
+      throw new Error('API key not set');
+    }
+
+    try {
+      const response = await this.genAI.models.generateContentStream({
+        model: options.model || this.models.chat,
+        contents: prompt,
+        generationConfig: options.generationConfig || {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 8192,
+        }
+      });
+
+      return response;
+    } catch (error) {
+      throw new Error(`Streaming generation failed: ${error.message}`);
+    }
+  }
+
+  async generateContentWithSchema(prompt, schema, options = {}) {
+    if (!this.genAI) {
+      throw new Error('API key not set');
+    }
+
+    try {
+      const result = await this.genAI.models.generateContent({
+        model: options.model || this.models.chat,
+        contents: prompt,
+        generationConfig: {
+          temperature: options.temperature || 0.7,
+          topK: options.topK || 40,
+          topP: options.topP || 0.95,
+          maxOutputTokens: options.maxOutputTokens || 8192,
+          responseMimeType: 'application/json',
+          responseSchema: schema
+        }
+      });
+
+      return result.text;
+    } catch (error) {
+      throw new Error(`Structured generation failed: ${error.message}`);
     }
   }
 

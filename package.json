@@ -42,6 +42,7 @@
     "ag-grid-community": "^34.2.0",
     "ajv": "^8.17.1",
     "codemirror": "^6.0.2",
+    "codemirror-lang-r": "^0.1.1",
     "idb": "^8.0.3",
     "webr": "^0.5.5"
   }

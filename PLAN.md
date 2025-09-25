@@ -417,8 +417,7 @@ The application now has a solid foundation with completed core systems. Next pri
 - **Vocabulary Mapper RAG System**: Implement semantic search with EntityDB vector database
 - **WebWorker Infrastructure**: Set up batch embedding processing in background threads
 - **Mapping UI Components**: Build the mapping workbench with navigation and actions
-- **CodeMirror Integration**: Add code editor for Data Transform tab
-- **WebR Runtime**: Enable R code execution in the browser
+- ~~**Data Transform Implementation**: Complete with CodeMirror, WebR, AI assistance~~ ✅
 - **Chat Interface**: Complete the floating chat UI with system prompts
 
 ### 📁 Repository Structure Created
@@ -451,3 +450,149 @@ epiharmony/
 ├── public/schema/     # Example schemas directory
 └── .github/workflows/ # CI/CD configuration
 ```
+
+## AI Assistant Enhancements
+
+### ✅ Completed High-Priority Features (September 2025)
+
+1. **Language-Specific Prompts** (`src/utils/transformPrompts.js`)
+   - Separate prompts for JavaScript and R with specific constraints
+   - Four example transformations (direct, derived, one-to-many, many-to-one)
+   - WebR-compatible R instructions
+
+2. **Streaming Code Generation**
+   - Direct writing to code editor as AI generates
+   - Editor locking during generation
+   - Visual "AI is typing..." indicator
+   - Stop button to interrupt generation
+
+3. **Editor Context Awareness**
+   - AI can see current code in editor
+   - Enables iterative refinement ("improve this code")
+   - Maintains context for modifications
+
+4. **One-Click Generation**
+   - Quick generate button (✨) for instant code generation
+   - No message required - uses mapping context
+   - Streamlined workflow for simple transformations
+
+### 📋 Medium-Priority Enhancements (Future)
+
+1. **Live Preview Panel**
+   - Split view showing code and real-time results
+   - Execute on sample rows as code is typed
+   - Immediate feedback on transformations
+   - Implementation: Add preview pane, execute in worker on debounced changes
+
+2. **Error Recovery Assistant**
+   - Detect execution errors automatically
+   - Offer to fix common issues
+   - Provide contextual suggestions
+   - Implementation: Parse error messages, match patterns, suggest fixes
+
+3. **Smart Auto-Generation**
+   - Detect simple mappings automatically
+   - Generate code immediately on mapping selection
+   - Skip AI for obvious transformations
+   - Implementation: Pattern matching on schema similarity
+
+4. **Code Templates Library**
+   - Pre-built transformation patterns
+   - Quick insertion of common operations
+   - AI selects appropriate template
+   - Implementation: Template registry with pattern matching
+
+5. **Transformation Wizard**
+   - Step-by-step guided transformation
+   - Interactive decisions for edge cases
+   - Visual mapping builder
+   - Implementation: Multi-step modal with decision tree
+
+### 💡 Low-Priority Enhancements (Backlog)
+
+1. **Natural Language Rules**
+   - Describe transformations in plain English
+   - Parse rules to generate code
+   - Implementation: NLP parsing with structured extraction
+
+2. **Multi-Mapping Batch Mode**
+   - Generate all transformations at once
+   - Parallel processing for efficiency
+   - Progress tracking and interruption
+   - Implementation: Queue system with Promise.all
+
+3. **Test Case Generation**
+   - AI generates edge case tests
+   - Automatic validation of transformations
+   - Coverage analysis
+   - Implementation: Schema analysis for boundary conditions
+
+4. **Semantic Diff Visualization**
+   - Show what changed in code modifications
+   - Highlight additions/deletions
+   - Side-by-side comparison
+   - Implementation: Diff library with syntax highlighting
+
+5. **Validation Feedback Loop**
+   - Connect to Quality Control tab
+   - Auto-fix validation errors
+   - Suggest schema adjustments
+   - Implementation: Cross-tab communication with validation results
+
+6. **Contextual Suggestions**
+   - Proactive improvement suggestions
+   - Detect common patterns and anti-patterns
+   - Unit conversion reminders
+   - Implementation: Code analysis with rule engine
+
+7. **Interactive Code Refinement**
+   - Select code sections for targeted improvement
+   - Context menu with AI actions
+   - Implementation: Selection API with contextual prompts
+
+8. **Version History**
+   - Track all generated versions
+   - Compare and rollback
+   - Implementation: Store versions in IndexedDB
+
+9. **Collaborative Editing**
+   - Multiple cursors for AI and user
+   - Real-time co-editing experience
+   - Implementation: Operational transformation
+
+10. **Performance Profiling**
+    - Measure transformation speed
+    - Identify bottlenecks
+    - Suggest optimizations
+    - Implementation: Performance API with metrics
+
+### 🔧 Technical Debt & Improvements
+
+1. **Structured Output Enforcement**
+   - Use Gemini's response schemas
+   - Guaranteed JSON format
+   - Type-safe responses
+   - Implementation: Update generateContentWithSchema
+
+2. **Better Error Handling**
+   - Graceful degradation
+   - Retry logic for API failures
+   - User-friendly error messages
+   - Implementation: Error boundary components
+
+3. **Caching Strategy**
+   - Cache generated code per mapping
+   - Reuse similar transformations
+   - Implementation: LRU cache in IndexedDB
+
+4. **Accessibility Improvements**
+   - Screen reader support
+   - Keyboard navigation
+   - ARIA labels
+   - Implementation: Audit and add ARIA attributes
+
+5. **Testing Suite**
+   - Unit tests for transformations
+   - Integration tests for AI flow
+   - E2E tests for complete workflow
+   - Implementation: Jest + Playwright

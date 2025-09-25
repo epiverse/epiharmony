@@ -103,4 +103,97 @@
   .view-toggle-btn:not(.active) {
     @apply bg-gray-100 text-gray-600 hover:bg-gray-200;
   }
+
+  /* Console message styles */
+  .console-message {
+    @apply font-mono text-sm py-0.5;
+  }
+
+  .console-log {
+    @apply text-green-400;
+  }
+
+  .console-error {
+    @apply text-red-400;
+  }
+
+  .console-warn {
+    @apply text-yellow-400;
+  }
+
+  .console-info {
+    @apply text-blue-400;
+  }
+
+  .console-success {
+    @apply text-green-500 font-semibold;
+  }
+
+  /* AI Assistant styles */
+  .ai-assistant {
+    @apply transition-all duration-300;
+  }
+
+  .ai-assistant-header {
+    @apply cursor-pointer select-none;
+  }
+
+  .chat-entry {
+    @apply animate-fadeIn;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  /* CodeMirror container adjustments */
+  .cm-editor {
+    @apply h-full;
+  }
+
+  .cm-scroller {
+    @apply font-mono;
+  }
+
+  /* Fullscreen modal styles */
+  #fullscreen-modal .cm-editor {
+    @apply h-full;
+  }
+
+  /* File attachment styles */
+  .attached-file {
+    @apply transition-all duration-200 hover:shadow-md;
+  }
+
+  .temp-attachments > div {
+    @apply transition-all duration-200;
+  }
+
+  /* AG-Grid column highlighting */
+  .ag-theme-quartz .highlight-column-header {
+    background-color: rgb(251, 191, 36) !important; /* amber-400 */
+    color: white !important;
+    font-weight: 600 !important;
+  }
+
+  .ag-theme-quartz .bg-amber-50 {
+    background-color: rgb(255, 251, 235) !important; /* amber-50 */
+    transition: background-color 0.2s ease !important;
+  }
+
+  .ag-theme-quartz .bg-amber-50:hover {
+    background-color: rgb(253, 230, 138) !important; /* amber-200 */
+    cursor: pointer;
+  }
 }

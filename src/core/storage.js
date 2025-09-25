@@ -174,4 +174,14 @@ export class StorageManager {
     await this.ensureInit();
     await this.db.delete('config', 'schemas_target');
   }
+
+  async saveAIAssistantSettings(settings) {
+    await this.ensureInit();
+    await this.db.put('config', settings, 'aiAssistantSettings');
+  }
+
+  async getAIAssistantSettings() {
+    await this.ensureInit();
+    return await this.db.get('config', 'aiAssistantSettings');
+  }
 }

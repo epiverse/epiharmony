@@ -23,12 +23,13 @@ export class DataGrid {
     this.hasValidationRun = false; // Track if validation has been performed
   }
 
-  init(data, columns = null) {
+  init(data, columns = null, highlightColumns = []) {
     if (!this.container) return;
 
     this.data = data || [];
     this.originalData = JSON.parse(JSON.stringify(data || [])); // Deep copy original data
     this.hasValidationRun = false; // Reset validation state when new data is loaded
+    this.highlightColumns = highlightColumns || []; // Store columns to highlight
 
     // Clear existing grid if present
     if (this.gridApi) {
@@ -88,7 +89,8 @@ export class DataGrid {
       field: key,
       headerName: key,
       cellClass: (params) => this.getCellClass(params),
-      cellRenderer: (params) => this.cellRenderer(params)
+      cellRenderer: (params) => this.cellRenderer(params),
+      headerClass: this.highlightColumns.includes(key) ? 'highlight-column-header' : ''
     }));
   }
 
@@ -149,9 +151,16 @@ export class DataGrid {
     const cellKey = `${params.node.rowIndex}-${params.colDef.field}`;
     const errors = this.errorsByCell.get(cellKey);
 
+    // Check for validation errors first
     if (errors && errors.length > 0) {
       return 'bg-red-50 border-red-300';
     }
+
+    // Check if this column should be highlighted
+    if (this.highlightColumns && this.highlightColumns.includes(params.colDef.field)) {
+      return 'bg-amber-50';
+    }
+
     return '';
   }
 
