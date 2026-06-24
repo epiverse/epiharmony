@@ -1,3 +1,50 @@
+let dropdownHandlerInstalled = false;
+
+function positionDropdown(dropdown, trigger) {
+  const buttonRect = trigger.getBoundingClientRect();
+  const dropdownHeight = dropdown.offsetHeight;
+  const viewportHeight = window.innerHeight;
+  dropdown.style.position = 'fixed';
+  dropdown.style.left = buttonRect.left + 'px';
+  if (buttonRect.bottom + dropdownHeight > viewportHeight && buttonRect.top - dropdownHeight > 0) {
+    // Flip above the button if it would overflow the bottom of the viewport
+    dropdown.style.top = (buttonRect.top - dropdownHeight - 5) + 'px';
+  } else {
+    dropdown.style.top = (buttonRect.bottom + 5) + 'px';
+  }
+}
+
+// A single delegated click handler for ALL schema-table dropdowns, installed once
+// for the whole app. This avoids the previous bug where every SchemaViewer.render()
+// stacked another listener on the same container element (innerHTML replacement does
+// not remove listeners bound to the container itself), so toggles cancelled out and
+// dropdowns never opened.
+function installDropdownHandler() {
+  if (dropdownHandlerInstalled) return;
+  dropdownHandlerInstalled = true;
+
+  document.addEventListener('click', (e) => {
+    const trigger = e.target.closest('.dropdown-trigger');
+
+    // Click inside an already-open panel (e.g. to scroll): leave it open.
+    if (!trigger && e.target.closest('.schema-dropdown')) return;
+
+    const targetId = trigger ? trigger.getAttribute('data-dropdown-id') : null;
+
+    // Close every other open dropdown (also handles plain outside clicks).
+    document.querySelectorAll('.schema-dropdown:not(.hidden)').forEach(el => {
+      if (el.id !== targetId) el.classList.add('hidden');
+    });
+
+    if (!trigger) return;
+    const dropdown = targetId ? document.getElementById(targetId) : null;
+    if (!dropdown) return;
+
+    dropdown.classList.toggle('hidden');
+    if (!dropdown.classList.contains('hidden')) positionDropdown(dropdown, trigger);
+  });
+}
+
 export class SchemaViewer {
   constructor(container, options = {}) {
     this.container = typeof container === 'string' ? document.querySelector(container) : container;
@@ -213,7 +260,7 @@ export class SchemaViewer {
         >
           ${property.enum.length} values ▼
         </button>
-        <div id="${enumId}" class="hidden fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl min-w-[250px] max-w-[400px] max-h-[300px] overflow-y-auto" style="margin-top: 2px;">
+        <div id="${enumId}" class="schema-dropdown hidden fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl min-w-[250px] max-w-[400px] max-h-[300px] overflow-y-auto" style="margin-top: 2px;">
     `;
 
     property.enum.forEach((value, index) => {
@@ -254,7 +301,7 @@ export class SchemaViewer {
           class="text-amber-600 hover:text-amber-700 underline text-sm dropdown-trigger">
           View details
         </button>
-        <div id="${addId}" class="hidden fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4 min-w-[200px] max-w-[400px] max-h-[300px] overflow-y-auto" style="margin-top: 2px;">
+        <div id="${addId}" class="schema-dropdown hidden fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl p-4 min-w-[200px] max-w-[400px] max-h-[300px] overflow-y-auto" style="margin-top: 2px;">
           ${Object.entries(additional).map(([k, v]) =>
             `<div class="mb-2"><strong class="text-gray-700">${k}:</strong> <span class="text-gray-600 text-xs">${typeof v === 'object' ? JSON.stringify(v, null, 2) : v}</span></div>`
           ).join('')}
@@ -497,49 +544,7 @@ export class SchemaViewer {
   }
 
   setupDropdownHandlers() {
-    // Handle dropdown button clicks
-    this.container.addEventListener('click', (e) => {
-      const button = e.target.closest('.dropdown-trigger');
-      if (button) {
-        e.stopPropagation();
-        const dropdownId = button.getAttribute('data-dropdown-id');
-        if (dropdownId) {
-          const dropdown = document.getElementById(dropdownId);
-          if (dropdown) {
-            // Toggle visibility
-            dropdown.classList.toggle('hidden');
-
-            // Position dropdown if visible
-            if (!dropdown.classList.contains('hidden')) {
-              const buttonRect = button.getBoundingClientRect();
-              const dropdownHeight = dropdown.offsetHeight;
-              const viewportHeight = window.innerHeight;
-
-              // Position dropdown
-              dropdown.style.position = 'fixed';
-              dropdown.style.left = buttonRect.left + 'px';
-
-              // Check if dropdown would go off bottom of screen
-              if (buttonRect.bottom + dropdownHeight > viewportHeight && buttonRect.top - dropdownHeight > 0) {
-                // Show above button
-                dropdown.style.top = (buttonRect.top - dropdownHeight - 5) + 'px';
-              } else {
-                // Show below button
-                dropdown.style.top = (buttonRect.bottom + 5) + 'px';
-              }
-            }
-          }
-        }
-      }
-    });
-
-    // Close dropdowns on outside click
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.dropdown-trigger')) {
-        document.querySelectorAll('[id^="enum_"], [id^="add_"]').forEach(el => {
-          el.classList.add('hidden');
-        });
-      }
-    });
+    // Idempotent: installs a single app-wide delegated handler on first call.
+    installDropdownHandler();
   }
 }
