@@ -6,7 +6,7 @@ export class GeminiService {
     this.genAI = apiKey ? new GoogleGenAI({ apiKey }) : null;
     this.models = {
       embedding: 'gemini-embedding-001',
-      chat: 'gemini-2.5-flash-lite'
+      chat: 'gemini-3.1-flash-lite'
     };
     this.embeddingDimension = 3072; // Default to maximum
   }
@@ -38,7 +38,7 @@ export class GeminiService {
     try {
       // Test with a simple generation request
       const response = await this.genAI.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.1-flash-lite',
         contents: 'Test'
       });
 
@@ -106,9 +106,8 @@ export class GeminiService {
 
       if (chatModels.length === 0) {
         chatModels.push(
-          { name: 'gemini-2.5-flash', displayName: 'Gemini 2.5 Flash', description: 'Fast, versatile performance' },
-          { name: 'gemini-2.5-pro', displayName: 'Gemini 2.5 Pro', description: 'Complex reasoning' },
-          { name: 'gemini-2.5-flash-lite', displayName: 'Gemini 2.5 Flash Lite', description: 'Cost-efficient' }
+          { name: 'gemini-3.5-flash', displayName: 'Gemini 3.5 Flash', description: 'Fast, versatile performance' },
+          { name: 'gemini-3.1-flash-lite', displayName: 'Gemini 3.1 Flash Lite', description: 'Cost-efficient' }
         );
       }
 
@@ -126,9 +125,8 @@ export class GeminiService {
           { name: 'gemini-embedding-001', displayName: 'Gemini Embedding 001' }
         ],
         chatModels: [
-          { name: 'gemini-2.5-flash', displayName: 'Gemini 2.5 Flash' },
-          { name: 'gemini-2.5-pro', displayName: 'Gemini 2.5 Pro' },
-          { name: 'gemini-2.5-flash-lite', displayName: 'Gemini 2.5 Flash Lite' }
+          { name: 'gemini-3.5-flash', displayName: 'Gemini 3.5 Flash' },
+          { name: 'gemini-3.1-flash-lite', displayName: 'Gemini 3.1 Flash Lite' }
         ]
       };
     }

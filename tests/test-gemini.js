@@ -25,7 +25,7 @@ async function testGemini() {
     // Test content generation
     console.log('2. Testing content generation...');
     const contentResponse = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.1-flash-lite',
       contents: 'Say "Hello from epiHarmony!" and explain data harmonization in one sentence.'
     });
     console.log('✓ Content generated:');

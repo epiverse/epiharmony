@@ -106,7 +106,7 @@ export class DataPanel {
       mappings: [],
       aiConfig: {
         embeddingModel: 'gemini-embedding-001',
-        chatModel: 'gemini-2.5-flash',
+        chatModel: 'gemini-3.1-flash-lite',
         embeddingDimension: 3072
       }
     };
@@ -449,7 +449,7 @@ export class DataPanel {
       mappings: [],
       aiConfig: {
         embeddingModel: 'gemini-embedding-001',
-        chatModel: 'gemini-2.5-flash',
+        chatModel: 'gemini-3.1-flash-lite',
         embeddingDimension: 3072
       }
     };
@@ -777,7 +777,7 @@ export class DataPanel {
         if (currentValue && Array.from(chatSelect.options).some(opt => opt.value === currentValue)) {
           chatSelect.value = currentValue;
         } else {
-          chatSelect.value = 'gemini-2.5-flash';
+          chatSelect.value = 'gemini-3.1-flash-lite';
         }
 
         // Update the gemini service with the current selection
