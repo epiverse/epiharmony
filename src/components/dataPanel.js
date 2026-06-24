@@ -195,7 +195,7 @@ export class DataPanel {
     const input = document.createElement('input');
     input.type = 'url';
     input.placeholder = `Enter ${type} schema URL...`;
-    input.className = 'input-field flex-grow';
+    input.className = 'input-field grow';
     input.value = value;
 
     inputWrapper.appendChild(input);
@@ -370,8 +370,8 @@ export class DataPanel {
     selectorDiv.className = 'mt-3 mb-2 px-1';
     selectorDiv.innerHTML = `
       <div class="flex items-center gap-2">
-        <label class="text-sm text-gray-600 whitespace-nowrap flex-shrink-0">Main schema:</label>
-        <select id="${type}-main-schema-select" class="text-sm border rounded px-2 py-1 w-full max-w-[200px]">
+        <label class="text-sm text-gray-600 whitespace-nowrap shrink-0">Main schema:</label>
+        <select id="${type}-main-schema-select" class="text-sm border rounded-sm px-2 py-1 w-full max-w-[200px]">
           <option>Loading...</option>
         </select>
       </div>

@@ -297,7 +297,7 @@ export class DataGrid {
     this.originalData = JSON.parse(JSON.stringify(data || [])); // Deep copy original data
     this.hasValidationRun = false; // Reset validation state when new data is set
     if (this.gridApi) {
-      this.gridApi.setRowData(data);
+      this.gridApi.setGridOption('rowData', data);
       this.gridApi.refreshCells({ force: true }); // Refresh to update status column
     } else {
       // Re-initialize grid with new data

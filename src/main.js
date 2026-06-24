@@ -77,7 +77,7 @@ class EpiHarmonyApp {
 
   openChatDialog() {
     const dialog = document.createElement('div');
-    dialog.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+    dialog.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4';
     dialog.innerHTML = `
       <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
         <div class="bg-amber-600 text-white px-6 py-4 flex justify-between items-center">

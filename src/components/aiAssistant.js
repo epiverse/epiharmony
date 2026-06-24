@@ -83,7 +83,7 @@ export class AIAssistant {
 
   render() {
     this.container.innerHTML = `
-      <div class="ai-assistant bg-white border rounded-lg shadow-sm">
+      <div class="ai-assistant bg-white border rounded-lg shadow-xs">
         <!-- Header -->
         <div class="ai-assistant-header p-4 border-b bg-gradient-to-r from-amber-50 to-amber-100 rounded-t-lg">
           <div class="flex justify-between items-center">
@@ -202,7 +202,7 @@ export class AIAssistant {
     }
 
     return this.attachedFiles.map((file, index) => `
-      <div class="attached-file flex items-center justify-between p-2 bg-white border rounded" data-index="${index}">
+      <div class="attached-file flex items-center justify-between p-2 bg-white border rounded-sm" data-index="${index}">
         <span class="text-sm truncate flex-1">${file.name}</span>
         <button class="remove-file ml-2 text-red-500 hover:text-red-700">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -342,7 +342,7 @@ export class AIAssistant {
   displayTempAttachment(file) {
     const container = this.container.querySelector('.temp-attachments');
     const element = document.createElement('div');
-    element.className = 'inline-flex items-center px-2 py-1 bg-amber-100 rounded text-sm';
+    element.className = 'inline-flex items-center px-2 py-1 bg-amber-100 rounded-sm text-sm';
     element.innerHTML = `
       <span class="mr-1">${file.name}</span>
       <button class="text-amber-700 hover:text-amber-900">×</button>

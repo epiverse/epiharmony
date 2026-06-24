@@ -178,7 +178,7 @@ export class VocabularyMapper {
                 </label>
               </div>
               <textarea id="custom-prompt"
-                       class="w-full h-64 p-3 border rounded font-mono text-xs bg-gray-50"
+                       class="w-full h-64 p-3 border rounded-sm font-mono text-xs bg-gray-50"
                        placeholder="Enter custom prompt or leave empty to use default..."></textarea>
               <div class="flex space-x-2 mt-3">
                 <button id="save-prompt" class="btn-primary">Save Custom Prompt</button>
@@ -910,7 +910,7 @@ export class VocabularyMapper {
     }
 
     container.innerHTML = properties.map(prop => `
-      <div class="property-item cursor-pointer hover:bg-amber-50 p-2 rounded" data-property="${prop.name}" data-type="${type}">
+      <div class="property-item cursor-pointer hover:bg-amber-50 p-2 rounded-sm" data-property="${prop.name}" data-type="${type}">
         <input type="checkbox" class="mr-2" data-property-check="${prop.name}" data-type="${type}">
         <span class="font-mono text-sm">${prop.name}</span>
         <span class="text-gray-500 text-xs ml-2">(${prop.type})</span>
@@ -951,7 +951,7 @@ export class VocabularyMapper {
 
     // Update display
     selectedContainer.innerHTML = Array.from(selected).map(prop => `
-      <span class="bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">${prop}</span>
+      <span class="bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-sm">${prop}</span>
     `).join('');
   }
 
@@ -1372,7 +1372,7 @@ export class VocabularyMapper {
         '<svg class="w-4 h-4 text-yellow-600 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>' : '';
 
       const confidenceDisplay = mapping.confidenceLevel ?
-        `<span class="text-xs px-2 py-1 rounded ${
+        `<span class="text-xs px-2 py-1 rounded-sm ${
           mapping.confidenceLevel === 'high' ? 'bg-green-100 text-green-700' :
           mapping.confidenceLevel === 'medium' ? 'bg-amber-100 text-amber-700' :
           'bg-red-100 text-red-700'
@@ -1380,7 +1380,7 @@ export class VocabularyMapper {
         `<span class="text-xs text-gray-500">${Math.round(mapping.confidence * 100)}%</span>`;
 
       return `
-        <div class="${statusColor} rounded p-2 border">
+        <div class="${statusColor} rounded-sm p-2 border">
           <div class="flex items-center justify-between">
             <div class="flex-1">
               <span class="font-mono text-sm">
@@ -1922,7 +1922,7 @@ export class VocabularyMapper {
     if (!container) return;
 
     container.innerHTML = candidates.map((c, i) => `
-      <div class="flex items-start space-x-3 mb-3 p-2 hover:bg-gray-50 rounded">
+      <div class="flex items-start space-x-3 mb-3 p-2 hover:bg-gray-50 rounded-sm">
         <input type="checkbox" id="candidate-${i}" value="${c.property.name}"
                class="mt-1 candidate-checkbox" data-index="${i}">
         <label for="candidate-${i}" class="flex-1 cursor-pointer">
@@ -2048,7 +2048,7 @@ export class VocabularyMapper {
         <div class="flex justify-end mb-3">
           <div class="max-w-xs lg:max-w-md">
             <div class="text-xs text-gray-500 mb-1 text-right">You</div>
-            <div class="bg-amber-100 rounded-lg p-3 shadow-sm">
+            <div class="bg-amber-100 rounded-lg p-3 shadow-xs">
               ${userMessage}
             </div>
           </div>
@@ -2071,7 +2071,7 @@ export class VocabularyMapper {
           <div class="flex justify-start mb-3">
             <div class="max-w-xs lg:max-w-md">
               <div class="text-xs text-gray-500 mb-1">AI Assistant</div>
-              <div class="bg-gray-100 rounded-lg p-3 shadow-sm">
+              <div class="bg-gray-100 rounded-lg p-3 shadow-xs">
                 ${response.assistantResponse}
               </div>
             </div>
@@ -2366,7 +2366,7 @@ export class VocabularyMapper {
     if (recommendedContainer) {
       if (recommended.length > 0) {
         recommendedContainer.innerHTML = recommended.map(prop => `
-          <label class="flex items-start p-2 hover:bg-green-100 rounded cursor-pointer">
+          <label class="flex items-start p-2 hover:bg-green-100 rounded-sm cursor-pointer">
             <input type="checkbox" value="${prop.name}" class="mt-1 mr-3 manual-source-checkbox" checked>
             <div class="flex-1">
               <span class="font-mono text-sm font-medium">${prop.name}</span>
@@ -2385,7 +2385,7 @@ export class VocabularyMapper {
     const othersContainer = document.getElementById('manual-other-checkboxes');
     if (othersContainer) {
       othersContainer.innerHTML = others.map(prop => `
-        <label class="flex items-start p-2 hover:bg-gray-100 rounded cursor-pointer">
+        <label class="flex items-start p-2 hover:bg-gray-100 rounded-sm cursor-pointer">
           <input type="checkbox" value="${prop.name}" class="mt-1 mr-3 manual-source-checkbox">
           <div class="flex-1">
             <span class="font-mono text-sm">${prop.name}</span>
@@ -2592,7 +2592,7 @@ export class VocabularyMapper {
     summaryEl.innerHTML = `
       <div class="flex items-center justify-between">
         <span>${sourceProps.join(', ')} → ${targetProp}</span>
-        <span class="text-xs px-2 py-1 rounded ${
+        <span class="text-xs px-2 py-1 rounded-sm ${
           recommendation.confidence === 'High' ? 'bg-green-100 text-green-700' :
           recommendation.confidence === 'Medium' ? 'bg-amber-100 text-amber-700' :
           'bg-red-100 text-red-700'
@@ -2654,7 +2654,7 @@ export class VocabularyMapper {
     if (!listEl || this.sourceProperties.length === 0) return;
 
     listEl.innerHTML = this.sourceProperties.map(prop => `
-      <label class="flex items-center space-x-2 p-1 hover:bg-gray-100 rounded cursor-pointer">
+      <label class="flex items-center space-x-2 p-1 hover:bg-gray-100 rounded-sm cursor-pointer">
         <input type="checkbox" class="manual-source-prop-checkbox" value="${prop.name}" data-prop="${JSON.stringify(prop).replace(/"/g, '&quot;')}">
         <span class="text-sm">
           <span class="font-medium">${prop.name}</span>
@@ -2672,7 +2672,7 @@ export class VocabularyMapper {
     if (!listEl || this.targetProperties.length === 0) return;
 
     listEl.innerHTML = this.targetProperties.map(prop => `
-      <label class="flex items-center space-x-2 p-1 hover:bg-gray-100 rounded cursor-pointer">
+      <label class="flex items-center space-x-2 p-1 hover:bg-gray-100 rounded-sm cursor-pointer">
         <input type="checkbox" class="manual-target-prop-checkbox" value="${prop.name}" data-prop="${JSON.stringify(prop).replace(/"/g, '&quot;')}">
         <span class="text-sm">
           <span class="font-medium">${prop.name}</span>

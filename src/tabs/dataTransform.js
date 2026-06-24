@@ -135,7 +135,7 @@ export class DataTransform {
 
         // Notify user
         const notification = document.createElement('div');
-        notification.className = 'fixed top-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg z-50';
+        notification.className = 'fixed top-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-sm shadow-lg z-50';
         notification.innerHTML = `
           <div class="flex items-center">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -250,7 +250,7 @@ export class DataTransform {
               <div class="bg-gray-100 px-4 py-2 border-b flex justify-between items-center">
                 <span class="font-medium">Data Preview</span>
                 <div class="flex items-center space-x-2">
-                  <button id="toggle-columns" class="text-sm px-2 py-1 bg-white border rounded hover:bg-gray-50 hidden">
+                  <button id="toggle-columns" class="text-sm px-2 py-1 bg-white border rounded-sm hover:bg-gray-50 hidden">
                     Show All Columns
                   </button>
                   <button id="expand-preview-btn" class="text-sm text-amber-600 hover:text-amber-700">
@@ -278,7 +278,7 @@ export class DataTransform {
               <div class="bg-gray-100 px-4 py-2 border-b flex justify-between items-center">
                 <span class="font-medium">Code Editor</span>
                 <div class="space-x-2 flex items-center">
-                  <select id="language-selector" class="px-2 py-1 text-sm border rounded">
+                  <select id="language-selector" class="px-2 py-1 text-sm border rounded-sm">
                     <option value="javascript">JavaScript</option>
                     <option value="r">R</option>
                   </select>
@@ -317,7 +317,7 @@ export class DataTransform {
               <div class="bg-gray-100 px-4 py-2 border-b flex justify-between items-center">
                 <span class="font-medium">Data Preview</span>
                 <div class="flex items-center space-x-2">
-                  <button id="toggle-columns" class="text-sm px-2 py-1 bg-white border rounded hover:bg-gray-50 hidden">
+                  <button id="toggle-columns" class="text-sm px-2 py-1 bg-white border rounded-sm hover:bg-gray-50 hidden">
                     Show All Columns
                   </button>
                   <button id="expand-preview-btn" class="text-sm text-amber-600 hover:text-amber-700">
@@ -345,7 +345,7 @@ export class DataTransform {
       </div>
 
       <!-- Fullscreen Modal for Code Editor -->
-      <div id="fullscreen-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50">
+      <div id="fullscreen-modal" class="hidden fixed inset-0 bg-black/50 z-50">
         <div class="bg-white m-8 rounded-lg shadow-xl h-[calc(100vh-4rem)]">
           <div class="flex justify-between items-center p-4 border-b">
             <h3 class="font-semibold">Code Editor - Fullscreen</h3>
@@ -360,7 +360,7 @@ export class DataTransform {
       </div>
 
       <!-- Fullscreen Modal for Data Preview -->
-      <div id="preview-fullscreen-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50">
+      <div id="preview-fullscreen-modal" class="hidden fixed inset-0 bg-black/50 z-50">
         <div class="bg-white m-8 rounded-lg shadow-xl h-[calc(100vh-4rem)]">
           <div class="flex justify-between items-center p-4 border-b">
             <h3 class="font-semibold">Data Preview - Fullscreen</h3>

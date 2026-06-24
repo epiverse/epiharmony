@@ -447,7 +447,7 @@ export class QualityControl {
     // Group and display errors by type
     this.validationResult.summary.forEach(item => {
       html += `
-        <div class="border rounded p-2 hover:bg-amber-50 cursor-pointer transition-colors"
+        <div class="border rounded-sm p-2 hover:bg-amber-50 cursor-pointer transition-colors"
              onclick="window.dispatchEvent(new CustomEvent('filter-errors', { detail: { errorType: '${item.errorType}', column: '${item.column}' } }))">
           <div class="flex justify-between items-start">
             <div class="flex-1">
@@ -522,7 +522,7 @@ export class QualityControl {
   showExportDialog() {
     // Create modal overlay
     const modal = document.createElement('div');
-    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
     modal.innerHTML = `
       <div class="bg-white rounded-lg p-6 max-w-sm w-full">
         <h3 class="text-lg font-semibold mb-4">Export Data</h3>

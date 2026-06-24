@@ -371,7 +371,7 @@ export class SchemaViewer {
           </td>
           <td class="px-4 py-3 text-sm text-gray-700">
             ${property.schema.const !== undefined ?
-              `<span class="font-mono bg-gray-100 px-2 py-1 rounded">${property.schema.const}</span>` :
+              `<span class="font-mono bg-gray-100 px-2 py-1 rounded-sm">${property.schema.const}</span>` :
               this.formatEnum(property)}
           </td>
           <td class="px-4 py-3 text-sm">
@@ -381,7 +381,7 @@ export class SchemaViewer {
           </td>
           <td class="px-4 py-3 text-sm text-gray-700">
             ${constraints.map(c =>
-              `<span class="inline-block mr-2 mb-1 px-2 py-1 bg-yellow-50 text-yellow-800 text-xs rounded">${c}</span>`
+              `<span class="inline-block mr-2 mb-1 px-2 py-1 bg-yellow-50 text-yellow-800 text-xs rounded-sm">${c}</span>`
             ).join(' ')}
           </td>
           <td class="px-4 py-3 text-sm text-gray-700">
